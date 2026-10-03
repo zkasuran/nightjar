@@ -2,7 +2,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Sky } from "../components/Sky";
-import { Storybox } from "../components/Storybox";
+import { Storybox, unlockSpeech } from "../components/Storybox";
 import { Failed, Loading } from "../components/ui";
 import { boxHealth, logAsleep, pollJob, startStory, type Health, type Stage } from "../lib/box";
 import type { Chapter, Demo } from "../lib/data";
@@ -42,7 +42,7 @@ type Phase = { k: "pick" } | { k: "working"; stage: Stage; note?: string } | { k
 function TabNote({ gpu }: { gpu: boolean | null }) {
   return (
     <p className="t-xs" style={{ textAlign: "center", maxWidth: 560, margin: "0 auto" }}>
-      This public page writes the story in your browser with Gemma 3 270M. The first time it downloads {gpu ? "about 280 MB" : "about 550 MB"} to this device and {gpu ? "takes under a minute" : "can take five minutes on a laptop without WebGPU"}. It reads along without a voice here. On the laptop box (<code className="mono">nightjar serve</code>) the story is ready in about a minute and read aloud.
+      This public page writes the story in your browser with Gemma 3 270M. The first time it downloads {gpu ? "about 280 MB" : "about 550 MB"} to this device and {gpu ? "takes under a minute" : "can take five minutes on a laptop without WebGPU"}. It reads aloud with this device's own voice. On the laptop box (<code className="mono">nightjar serve</code>) the story is ready in about a minute and read aloud.
     </p>
   );
 }
@@ -107,6 +107,20 @@ function Body({ d }: { d: Demo }) {
     worker.current = w;
     let text = "";
     let tries = 0;
+    // A phone that runs out of memory can kill the model without any error
+    // reaching the page. If nothing at all happens for two minutes, say so
+    // instead of spinning forever.
+    let lastSign = Date.now();
+    let finished = false;
+    const watchdog = window.setInterval(() => {
+      if (finished) return window.clearInterval(watchdog);
+      if (Date.now() - lastSign > 120_000) {
+        finished = true;
+        window.clearInterval(watchdog);
+        w.terminate();
+        setPhase({ k: "error", msg: "The story model stopped answering. This device may not have enough memory for it. The recorded chapters still work, with a real voice." });
+      }
+    }, 5000);
     const prompt = [
       `Tonight you are writing for ${name}, who is ${d.stories.child.age} years old.`,
       `${name} asked for this tonight, and the story must be about it: ${ask}.`,
@@ -122,6 +136,7 @@ function Body({ d }: { d: Demo }) {
     };
     w.onmessage = (e: MessageEvent<Out>) => {
       const m = e.data;
+      lastSign = Date.now();
       if (m.type === "progress") setPhase({ k: "working", stage: "queued", note: m.total ? `Downloading the story model, ${Math.round((m.loaded / m.total) * 100)}%` : undefined });
       else if (m.type === "ready") generate();
       else if (m.type === "token") text += m.text;
@@ -131,7 +146,12 @@ function Body({ d }: { d: Demo }) {
         const title = lines.length > 1 && lines[0].length < 70 ? lines[0].replace(/^[#*[\]"\s]+|[*[\]"\s]+$/g, "") : "Tonight's Chapter";
         const body = (lines.length > 1 && lines[0].length < 70 ? lines.slice(1) : lines).join("\n");
         const v = check(d.guard, body, { avoid, alsoScreen: title, minWords: 40 });
-        if (!v.ok) return tries < 3 ? generate() : setPhase({ k: "refused" });
+        if (!v.ok) {
+          if (tries < 3) return generate();
+          finished = true;
+          return setPhase({ k: "refused" });
+        }
+        finished = true;
         setPhase({
           k: "ready",
           soften,
@@ -148,9 +168,15 @@ function Body({ d }: { d: Demo }) {
             audio: null,
           },
         });
-      } else if (m.type === "error") setPhase({ k: "error", msg: m.message });
+      } else if (m.type === "error") {
+        finished = true;
+        setPhase({ k: "error", msg: m.message });
+      }
     };
-    w.onerror = (e) => setPhase({ k: "error", msg: e.message || "the story model crashed" });
+    w.onerror = (e) => {
+      finished = true;
+      setPhase({ k: "error", msg: e.message || "the story model crashed" });
+    };
     setPhase({ k: "working", stage: "queued", note: "Starting the story model" });
     w.postMessage({ type: "load", model: "onnx-community/gemma-3-270m-it-ONNX", device: gpu ? "webgpu" : "wasm", dtype: gpu ? "q4f16" : "q8" } satisfies In);
   };
@@ -158,6 +184,7 @@ function Body({ d }: { d: Demo }) {
   const go = (ask: string) => {
     const a = ask.trim().slice(0, 200);
     if (!a) return;
+    unlockSpeech(); // a phone only lets the voice start after a tap: this is the tap
     setReq(a);
     if (mode === "box") makeBox(a);
     else makeTab(a);
@@ -231,9 +258,14 @@ function Body({ d }: { d: Demo }) {
 
           {phase.k === "ready" && (
             <motion.div key="ready" className="stack" style={{ gap: 16, maxWidth: 760, margin: "0 auto", width: "100%" }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
-              <Storybox chapter={phase.chapter} autoplay childName={name} label={`Tonight · "${req}"`} endActions={sleepButtons || undefined} />
+              {mode === "tab" && (
+                <motion.p className="tap-hint" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                  Your story is ready. Tap the play button to hear it.
+                </motion.p>
+              )}
+              <Storybox chapter={phase.chapter} autoplay={mode === "box"} childName={name} label={`Tonight · "${req}"`} endActions={sleepButtons || undefined} />
               {phase.soften.length > 0 && <p className="soft-note">Anything scary was made gentle, and the guardrail read every word first.</p>}
-              {mode === "tab" && <p className="t-xs" style={{ textAlign: "center" }}>Written on this device in {(phase.chapter.gen_ms / 1000).toFixed(0)}s and passed the guardrail. Read along without a voice here; the laptop box reads it aloud.</p>}
+              {mode === "tab" && <p className="t-xs" style={{ textAlign: "center" }}>Written on this device in {(phase.chapter.gen_ms / 1000).toFixed(0)}s and passed the guardrail. Read aloud with this device's own voice; the laptop box uses a softer offline voice.</p>}
               <div className="row" style={{ justifyContent: "center" }}>
                 <button className="btn sm" onClick={() => { setAsleep(""); setPhase({ k: "pick" }); }}>Pick a different story</button>
               </div>

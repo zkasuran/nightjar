@@ -7,7 +7,7 @@
 import { env, pipeline, TextStreamer, type TextGenerationPipeline } from "@huggingface/transformers";
 
 export type In =
-  | { type: "load"; model: string; device: "webgpu" | "wasm"; dtype: "q4f16" | "q8" }
+  | { type: "load"; model: string; device: "webgpu" | "wasm"; dtype: "q4f16" | "q8" | "q4" }
   | { type: "generate"; system: string; prompt: string; maxTokens: number };
 export type Out =
   | { type: "progress"; file: string; loaded: number; total: number }

@@ -34,6 +34,36 @@ function wordAt(starts: number[], t: number): number {
 
 type VoiceState = "off" | "loading" | "on" | "blocked" | "error";
 
+const canSpeak = () => typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
+
+/** The device's nicest English voice. Phones ship good ones; desktop Linux does not. */
+function bestVoice(): SpeechSynthesisVoice | null {
+  const vs = speechSynthesis.getVoices().filter((v) => /^en(-|_|$)/i.test(v.lang));
+  if (!vs.length) return null;
+  const score = (v: SpeechSynthesisVoice) =>
+    (/natural|neural|enhanced|premium|siri|samantha|karen|daniel|moira|aria|jenny|libby|sonia|google (us|uk) english/i.test(v.name) ? 10 : 0) +
+    (/espeak|compact|robot|novelty|whisper|zarvox|bad news|bells|boing|bubbles|cellos|trinoids/i.test(v.name) ? -20 : 0) +
+    (/en-(us|gb|au)/i.test(v.lang) ? 2 : 0) +
+    (v.localService ? 1 : 0);
+  return [...vs].sort((a, b) => score(b) - score(a))[0];
+}
+
+/** iOS only lets speech start inside a tap. Call this from any tap to unlock it. */
+export function unlockSpeech(): void {
+  if (!canSpeak()) return;
+  try {
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    speechSynthesis.speak(u);
+  } catch {
+    /* nothing to unlock */
+  }
+}
+
+const SPEECH_RATE = 0.85;
+const SPEECH_WORD_S = 0.42; // estimate per word at that rate, corrected by the engine's own events
+const SENTENCE_GAP_S = 0.45;
+
 /** Voice preference survives moving between chapters (which remounts the box)
  *  for this tab only. Storage is user editable, so only "1" counts as on. */
 const VOICE_KEY = "nightjar-voice";
@@ -81,15 +111,56 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
   const nWords = useMemo(() => tokens.filter((t) => t.isWord).length, [tokens]);
   const audioMeta = chapter.audio && chapter.audio.words.length === nWords ? chapter.audio : null;
   const pace = Math.round(audioMeta?.overall_wpm ?? chapter.knobs.pace_wpm);
+  // Chapters written live in the browser have no recorded narration, so they
+  // are read with the device's own voice, one sentence at a time.
+  const speechMode = !audioMeta && canSpeak();
+  // Sentence of every word, and each word's character offset inside its sentence.
+  const sents = useMemo(() => {
+    const sentOf: number[] = [];
+    const offset: number[] = [];
+    const texts: string[] = [];
+    const first: number[] = [];
+    let cur = "";
+    let k = 0;
+    tokens.forEach((tk, i) => {
+      if (tk.isWord) {
+        if (!cur) first.push(tk.w);
+        offset[tk.w] = cur.length + (cur ? 1 : 0);
+        sentOf[tk.w] = k;
+        cur += (cur ? " " : "") + tk.text;
+        const next = tokens[i + 1];
+        if (/[.!?]["'\u2019\u201d)]*$/.test(tk.text) || !next || next.text.includes("\n")) {
+          texts.push(cur);
+          cur = "";
+          k++;
+        }
+      }
+    });
+    if (cur) texts.push(cur);
+    return { sentOf, offset, texts, first };
+  }, [tokens]);
   const starts = useMemo(() => {
     if (audioMeta) return audioMeta.words.map((w) => w[0]);
+    if (speechMode) {
+      let t0 = 0.3;
+      return Array.from({ length: nWords }, (_, w) => {
+        if (w > 0 && sents.sentOf[w] !== sents.sentOf[w - 1]) t0 += SENTENCE_GAP_S;
+        const s = t0;
+        t0 += SPEECH_WORD_S;
+        return s;
+      });
+    }
     const step = 60 / chapter.knobs.pace_wpm;
     return Array.from({ length: nWords }, (_, i) => 0.4 + i * step);
-  }, [audioMeta, nWords, chapter.knobs.pace_wpm]);
-  const duration = audioMeta?.duration ?? (starts.length ? starts[starts.length - 1] + 60 / chapter.knobs.pace_wpm + 0.4 : 0);
+  }, [audioMeta, speechMode, sents, nWords, chapter.knobs.pace_wpm]);
+  const duration = audioMeta?.duration ?? (starts.length ? starts[starts.length - 1] + (speechMode ? SPEECH_WORD_S : 60 / chapter.knobs.pace_wpm) + 0.4 : 0);
 
   const [playing, setPlaying] = useState(autoplay);
   const [voice, setVoice] = useState<VoiceState>(() => (voicePref() ? "loading" : "off"));
+  const [speak, setSpeak] = useState(true); // device voice on, for live chapters
+  const utt = useRef(0); // id of the current utterance; events from older ones are ignored
+  const limit = useRef(Infinity); // the clock may not run past the sentence still being spoken
+  const stuckSince = useRef(0);
   const [attempt, setAttempt] = useState(0);
   const [music, setMusic] = useState(musicPref);
   const lullaby = useRef<Lullaby | null>(null);
@@ -106,6 +177,7 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
   const onEndRef = useRef(onEnd);
   onEndRef.current = onEnd;
   const voiceOn = voice === "on";
+  const speaking = speechMode && speak;
 
   const paint = useCallback(() => {
     const p = wordAt(starts, t.current);
@@ -123,6 +195,9 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
   // New chapter: stop the sound, rewind, keep the voice preference.
   useEffect(() => {
     audio.current?.pause();
+    utt.current++;
+    limit.current = Infinity;
+    if (canSpeak()) speechSynthesis.cancel();
     t.current = 0;
     setPos(-1);
     setEnded(false);
@@ -169,6 +244,80 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
     } else a.pause();
   }, [playing, voiceOn]);
 
+  // ---------- device voice ----------
+  const stopSpeech = useCallback(() => {
+    utt.current++;
+    limit.current = Infinity;
+    if (canSpeak()) speechSynthesis.cancel();
+  }, []);
+
+  const finish = useCallback(() => {
+    stopSpeech();
+    t.current = duration;
+    paint();
+    setPlaying(false);
+    setEnded(true);
+    onEndRef.current?.();
+  }, [stopSpeech, duration, paint]);
+
+  const speakFrom = useCallback(
+    (word: number) => {
+      if (!canSpeak()) return;
+      const id = ++utt.current;
+      speechSynthesis.cancel();
+      const w = Math.max(0, Math.min(nWords - 1, word));
+      const k = sents.sentOf[w] ?? 0;
+      const text = sents.texts[k] ?? "";
+      const base = sents.offset[w] ?? 0;
+      const nextFirst = sents.first[k + 1];
+      t.current = starts[w];
+      limit.current = nextFirst !== undefined ? starts[nextFirst] - 0.02 : duration - 0.02;
+      stuckSince.current = 0;
+      const u = new SpeechSynthesisUtterance(text.slice(base));
+      const v = bestVoice();
+      if (v) {
+        u.voice = v;
+        u.lang = v.lang;
+      } else u.lang = "en-US";
+      u.rate = SPEECH_RATE;
+      u.onboundary = (e) => {
+        if (id !== utt.current || e.name === "sentence") return;
+        const ci = base + e.charIndex;
+        let hit = w;
+        for (let i = w; i < nWords && sents.sentOf[i] === k; i++) if (sents.offset[i] <= ci) hit = i;
+        t.current = Math.max(t.current, starts[hit]);
+      };
+      u.onend = () => {
+        if (id !== utt.current) return;
+        if (nextFirst === undefined) return finish();
+        t.current = starts[nextFirst] - 0.01;
+        setTimeout(() => id === utt.current && speakFrom(nextFirst), 250);
+      };
+      u.onerror = (e) => {
+        if (id !== utt.current || e.error === "interrupted" || e.error === "canceled") return;
+        utt.current++;
+        limit.current = Infinity;
+        setSpeak(false); // keep reading along silently
+      };
+      speechSynthesis.speak(u);
+    },
+    [nWords, sents, starts, duration, finish],
+  );
+
+  useEffect(() => {
+    if (!canSpeak()) return;
+    speechSynthesis.getVoices(); // starts the async voice list on Chrome
+    return () => stopSpeech();
+  }, [stopSpeech]);
+
+  // Autoplay path (no tap): try to speak; the tap path calls speakFrom directly.
+  useEffect(() => {
+    if (!speaking) return;
+    if (playing) {
+      if (limit.current === Infinity) speakFrom(Math.max(0, wordAt(starts, t.current)));
+    } else stopSpeech();
+  }, [playing, speaking, speakFrom, stopSpeech, starts]);
+
   // The clock.
   useEffect(() => {
     if (!playing) return;
@@ -180,10 +329,26 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
       const a = audio.current;
       if (voiceOn && a) {
         if (!a.paused || a.ended) t.current = a.currentTime;
-      } else if (voice !== "loading") {
+      } else if (speaking && limit.current !== Infinity) {
+        // Advance at the estimated pace but never past the sentence being spoken.
+        if (t.current + dt < limit.current) {
+          t.current += dt;
+          stuckSince.current = 0;
+        } else {
+          t.current = limit.current;
+          // An engine that never reports the end of a sentence must not freeze the story.
+          stuckSince.current = stuckSince.current || now;
+          if (now - stuckSince.current > 6000) {
+            stuckSince.current = 0;
+            const next = sents.first[(sents.sentOf[wordAt(starts, t.current)] ?? 0) + 1];
+            if (next === undefined) return finish();
+            speakFrom(next);
+          }
+        }
+      } else if (voice !== "loading" && !speaking) {
         t.current += dt;
       }
-      if (t.current >= duration || (voiceOn && a?.ended)) {
+      if ((!speaking && t.current >= duration) || (voiceOn && a?.ended)) {
         t.current = duration;
         paint();
         setPlaying(false);
@@ -196,16 +361,16 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [playing, voiceOn, voice, duration, paint]);
+  }, [playing, voiceOn, voice, duration, paint, speaking, sents, starts, finish, speakFrom]);
 
   // The lullaby: plays under the voice, pauses with it, fades slowly at the end.
   useEffect(() => {
-    const want = playing && voiceOn && music;
+    const want = playing && (voiceOn || speaking) && music;
     if (want) {
       if (!lullaby.current) lullaby.current = new Lullaby(seedOf(`${chapter.night} ${chapter.title}`));
       lullaby.current.play().catch(() => undefined);
     } else lullaby.current?.pause(ended ? 6 : 0.5);
-  }, [playing, voiceOn, music, ended, chapter.night, chapter.title]);
+  }, [playing, voiceOn, speaking, music, ended, chapter.night, chapter.title]);
   useEffect(() => {
     // New chapter, new tune.
     return () => {
@@ -231,15 +396,33 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
     if (box && el) box.scrollTo({ top: Math.max(0, el.offsetTop - box.clientHeight * 0.4), behavior: "smooth" });
   }, [pos]);
 
-  const seek = (to: number) => {
+  /** Everything that has to start inside the tap itself (iOS rules). */
+  const startInTap = () => {
+    if (music && (voiceOn || speaking)) {
+      if (!lullaby.current) lullaby.current = new Lullaby(seedOf(`${chapter.night} ${chapter.title}`));
+      lullaby.current.play().catch(() => undefined);
+    }
+    if (voiceOn && audio.current) {
+      audio.current.currentTime = t.current;
+      audio.current.play().catch(() => setVoice("blocked"));
+    }
+    if (speaking) speakFrom(Math.max(0, wordAt(starts, t.current + 0.001)));
+  };
+  const seek = (to: number, word?: number) => {
     setEnded(false);
     t.current = Math.max(0, Math.min(duration - 0.01, to));
     if (audio.current) audio.current.currentTime = t.current;
+    if (speaking && playing) speakFrom(word ?? Math.max(0, wordAt(starts, t.current + 0.001)));
     paint();
   };
   const toggle = () => {
     if (t.current >= duration - 0.02) seek(0);
-    setPlaying((p) => !p);
+    if (playing) {
+      setPlaying(false);
+      return;
+    }
+    startInTap();
+    setPlaying(true);
   };
   const toggleVoice = () => {
     if (voice === "off") {
@@ -297,7 +480,7 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
               <p className="the-end-title">The end.</p>
               <p className="t-s">Goodnight{childName ? `, ${childName}` : ""}. Sleep tight.</p>
               <div className="row" style={{ justifyContent: "center" }}>
-                <button className="btn sm" onClick={() => { seek(0); setPlaying(true); }}>Read it again</button>
+                <button className="btn sm" onClick={() => { seek(0); startInTap(); setPlaying(true); }}>Read it again</button>
                 {endActions}
               </div>
             </motion.div>
@@ -306,7 +489,7 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
         <div className="reader" ref={readerRef} aria-live="off">
           {tokens.map((tk, i) =>
             tk.isWord ? (
-              <span key={i} className={`w ${tk.w < pos ? "read" : ""} ${tk.w === pos ? "now" : ""}`} onClick={() => seek(starts[tk.w] - 0.02)} title="Read from here">{tk.text}</span>
+              <span key={i} className={`w ${tk.w < pos ? "read" : ""} ${tk.w === pos ? "now" : ""}`} onClick={() => seek(starts[tk.w] - 0.02, tk.w)} title="Read from here">{tk.text}</span>
             ) : (
               <span key={i}>{tk.text.includes("\n") ? <br /> : tk.text}</span>
             ),
@@ -314,7 +497,7 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
         </div>
       </div>
       <div className="box-foot">
-        <button className="play" onClick={toggle} aria-label={playing ? "Pause" : "Play"}>
+        <button className={`play ${!playing && !ended && t.current === 0 ? "pulse" : ""}`} onClick={toggle} aria-label={playing ? "Pause" : "Play"}>
           {playing ? (
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" /><rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" /></svg>
           ) : (
@@ -338,7 +521,12 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
           <i ref={fill} />
         </div>
         <span className="t-xs num" style={{ minWidth: 44, textAlign: "right" }}>{left}s</span>
-        {audioMeta && voice === "on" && (
+        {speechMode && (
+          <button className={`chip ${speak ? "acc" : ""}`} style={{ cursor: "pointer" }} onClick={() => { if (speak) { stopSpeech(); setSpeak(false); } else { setSpeak(true); if (playing) speakFrom(Math.max(0, wordAt(starts, t.current + 0.001))); } }} aria-pressed={speak} title="Read aloud with this device's voice">
+            {speak ? "Voice on" : "Voice off"}
+          </button>
+        )}
+        {((audioMeta && voice === "on") || speaking) && (
           <button className={`chip ${music ? "acc" : ""}`} style={{ cursor: "pointer" }} onClick={() => { setMusicPref(!music); setMusic(!music); }} aria-pressed={music} title="A soft lullaby made in your browser, new for every story">
             {music ? "Music on" : "Music off"}
           </button>

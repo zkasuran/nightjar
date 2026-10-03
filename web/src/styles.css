@@ -369,3 +369,6 @@ table.data input[type="number"] { width: 72px; padding: 4px 8px; text-align: rig
 .dots { display: flex; gap: 8px; }
 .dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--acc); }
 @media (max-width: 720px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ask-form { flex-direction: column; } .tile-emoji { font-size: 38px; } }
+.tap-hint { text-align: center; font: 600 18px/1.4 var(--font-display); color: var(--acc); }
+.box .play.pulse { animation: pulse 1.8s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--acc-soft); } 50% { box-shadow: 0 0 0 12px transparent; } }
