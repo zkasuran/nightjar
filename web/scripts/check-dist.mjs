@@ -13,7 +13,7 @@ for (const [name, { sha256 }] of Object.entries(m.files)) {
   const got = createHash("sha256").update(readFileSync(`dist/demo/${name}`)).digest("hex");
   if (got !== sha256) fail(`${name} does not match manifest`);
 }
-for (const f of ["ort-wasm-simd-threaded.asyncify.mjs", "ort-wasm-simd-threaded.asyncify.wasm"]) if (!existsSync(`dist/ort/${f}`)) fail(`missing dist/ort/${f}`);
+for (const f of ["ort-wasm-simd-threaded.asyncify.mjs", "ort-wasm-simd-threaded.asyncify.wasm", "ort-wasm-simd-threaded.mjs", "ort-wasm-simd-threaded.wasm"]) if (!existsSync(`dist/ort/${f}`)) fail(`missing dist/ort/${f}`);
 for (const f of readdirSync("dist/assets")) {
   if (!f.endsWith(".js")) continue;
   const s = readFileSync(`dist/assets/${f}`, "utf8");

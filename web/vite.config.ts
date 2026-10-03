@@ -8,7 +8,7 @@ import { defineConfig, type Plugin } from "vite";
 const MODEL_HOSTS = ["https://huggingface.co", "https://*.huggingface.co", "https://*.hf.co"];
 
 /** ONNX Runtime is self-hosted so no script ever loads from a CDN. */
-const ORT = ["ort-wasm-simd-threaded.asyncify.mjs", "ort-wasm-simd-threaded.asyncify.wasm"];
+const ORT = ["ort-wasm-simd-threaded.asyncify.mjs", "ort-wasm-simd-threaded.asyncify.wasm", "ort-wasm-simd-threaded.mjs", "ort-wasm-simd-threaded.wasm"];
 
 function ortAssets(): Plugin {
   return {

@@ -45,6 +45,14 @@ class TestGuard(unittest.TestCase):
         text = "Pim gently touches it. It feels smooth as silk. " * 10 + "Open thread:  Maybe tomorrow the moon will show Pim a rainbow."
         self.assertIn("model meta-talk: open thread:", guard.check(text).violations)
 
+    def test_blocks_narrator_addressing_the_child(self):
+        # Regression from the in-browser 270M run.
+        text = (
+            "Hello, Mira! It's bedtime, and I'm thrilled to be here to read you. Tonight, I'm going to tell you a story about a little turtle friend. "
+            * 3
+        )
+        self.assertFalse(guard.check(text).ok)
+
     def test_blocks_raw_json_scaffolding(self):
         # Regression: gemma3:1b emitted a fenced JSON block whose body leaked
         # into the story text. Reading that aloud is not acceptable.

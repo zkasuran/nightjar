@@ -11,7 +11,7 @@ const SYSTEM =
   "You are a gentle bedtime storyteller for one small child. You write calm, warm, slightly dull stories designed to help a child fall asleep. Nothing frightening ever happens. There is no danger, no villain, no peril and no loud noise. Problems are small and are solved kindly. The story ends with everyone safe, warm and already sleepy. Write simple short sentences a young child can follow. Never mention that you are an AI and never address the reader.";
 
 const MODELS = [
-  { id: "onnx-community/gemma-3-270m-it-ONNX", name: "Gemma 3 270M", size: "about 300 MB", note: "Runs on most laptops, WebGPU or plain CPU", gpuOnly: false },
+  { id: "onnx-community/gemma-3-270m-it-ONNX", name: "Gemma 3 270M", size: "about 280 MB with WebGPU, 550 MB on CPU", note: "Runs on most laptops, WebGPU or plain CPU", gpuOnly: false },
   { id: "onnx-community/gemma-3-1b-it-ONNX-GQA", name: "Gemma 3 1B", size: "about 770 MB", note: "The same size as the laptop version, needs WebGPU", gpuOnly: true },
 ] as const;
 
@@ -63,12 +63,12 @@ function Body({ d }: { d: Demo }) {
       if (m.type === "progress") setFiles((f) => ({ ...f, [m.file]: [m.loaded, m.total] }));
       else if (m.type === "ready") { setMeta((x) => ({ ...x, loadMs: m.ms })); setPhase("ready"); }
       else if (m.type === "token") setText((t) => (t + m.text).slice(0, 20000));
-      else if (m.type === "done") { setText(m.text); setMeta((x) => ({ ...x, genMs: m.ms, tokens: m.tokens })); setPhase("done"); }
+      else if (m.type === "done") { setText((t) => (m.text.trim() ? m.text : t)); setMeta((x) => ({ ...x, genMs: m.ms, tokens: m.tokens })); setPhase("done"); }
       else if (m.type === "error") { setErr(m.message); setPhase("error"); }
     };
     w.onerror = (e) => { setErr(e.message || "the model worker crashed"); setPhase("error"); };
     const useGpu = !!gpu;
-    send({ type: "load", model: MODELS[model].id, device: useGpu ? "webgpu" : "wasm", dtype: useGpu ? "q4f16" : "q4" });
+    send({ type: "load", model: MODELS[model].id, device: useGpu ? "webgpu" : "wasm", dtype: useGpu ? "q4f16" : "q8" });
   };
 
   const write = () => {
@@ -78,7 +78,7 @@ function Body({ d }: { d: Demo }) {
       `Tonight you are writing for ${child.name}, who is ${child.age} years old.`,
       `${child.name} loves: ${child.loves.join(", ")}.`,
       `What ${child.name} asked for tonight: ${req.slice(0, 200)}`,
-      "About 200 words. Very quiet; almost nothing happens. Short sentences. End with everyone safe and asleep.",
+      "Write about 120 words. Very quiet; almost nothing happens. Short sentences. End with everyone safe and asleep.",
       "Put a short title on the first line, then the story. No other text.",
     ].join("\n");
     send({ type: "generate", system: SYSTEM, prompt, maxTokens: 450 });
@@ -88,7 +88,8 @@ function Body({ d }: { d: Demo }) {
   const got = Object.values(files).reduce((s, [l]) => s + l, 0);
   const pct = tot ? Math.min(100, (got / tot) * 100) : 0;
   const { title, body } = splitTitle(text);
-  const verdict = phase === "done" ? check(d.guard, body, { avoid: child.avoid, alsoScreen: title, minWords: 40 }) : null;
+  const empty = phase === "done" && !body.trim();
+  const verdict = phase === "done" && !empty ? check(d.guard, body, { avoid: child.avoid, alsoScreen: title, minWords: 40 }) : null;
   const m = MODELS[model];
 
   return (
@@ -113,7 +114,7 @@ function Body({ d }: { d: Demo }) {
               <button className="btn primary" onClick={load} disabled={gpu === null || phase === "loading" || phase === "writing"}>
                 {phase === "ready" || phase === "done" ? "Reload model" : `Download ${m.name} (${m.size})`}
               </button>
-              <p className="t-xs">Weights are public files from huggingface.co ({m.id}), used under the Gemma Terms of Use. The browser caches them for next time.</p>
+              <p className="t-xs">Without WebGPU it runs on one CPU thread: about 30 seconds to load and three to five minutes per chapter, measured in headless Chrome. The 270M model often talks to the child instead of telling a story; the guardrail now refuses that. Weights are public files from huggingface.co ({m.id}), used under the Gemma Terms of Use. The browser caches them for next time.</p>
             </div>
             <div className="card stack">
               <h3 className="h-s">What stays on this device</h3>
@@ -154,11 +155,14 @@ function Body({ d }: { d: Demo }) {
               )}
               {phase === "ready" && !text && <p className="t-s">Model ready in {(meta.loadMs / 1000).toFixed(1)}s. Press Write it.</p>}
             </div>
+            {empty && (
+              <div className="verdict no" role="status">The model stopped before writing anything. Nothing to read aloud. Press Write it for a new draft.</div>
+            )}
             <AnimatePresence>
               {verdict && (
                 <motion.div className={`verdict ${verdict.ok ? "ok" : "no"}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} role="status">
                   {verdict.ok ? "Guardrail passed. This chapter could be read aloud." : `Guardrail refused: ${verdict.violations.join("; ")}. Press Write it for a new draft.`}
-                  <span className="chip" style={{ marginLeft: "auto" }}>{meta.tokens} tokens · {(meta.genMs / 1000).toFixed(1)}s</span>
+                  <span className="chip" style={{ marginLeft: "auto" }}>{(meta.genMs / 1000).toFixed(0)}s on this device</span>
                 </motion.div>
               )}
             </AnimatePresence>

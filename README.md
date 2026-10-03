@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img alt="tests" src="https://img.shields.io/badge/tests-43%20python%20%2B%2012%20web-2ea44f">
+  <img alt="tests" src="https://img.shields.io/badge/tests-44%20python%20%2B%2012%20web-2ea44f">
   <img alt="npm audit" src="https://img.shields.io/badge/npm%20audit-0-2ea44f">
   <img alt="core deps" src="https://img.shields.io/badge/python%20core%20deps-0-2ea44f">
   <img alt="model" src="https://img.shields.io/badge/model-Gemma%203%2C%20local-f4c46a">
@@ -149,7 +149,7 @@ Site: `cd web && npm ci && npm run dev`. Re-record the series with `scripts/reco
 Model output and hand edited files are untrusted. The full threat model is in [SECURITY.md](SECURITY.md). One gate runs everything and CI runs the same script:
 
 ```bash
-./verify.sh   # ruff lint and format, 43 python tests (unit and adversarial), stdlib-only check,
+./verify.sh   # ruff lint and format, 44 python tests (unit and adversarial), stdlib-only check,
               # no em dashes, SPDX headers, tsc strict, 12 web tests (parity with Python, tamper),
               # vite build with CSP gate, npm audit 0, end to end CLI against a fake model
 ```

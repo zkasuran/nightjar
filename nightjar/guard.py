@@ -97,6 +97,11 @@ META = (
     # tomorrow..." which is the prompt's own field name read aloud.
     "open thread:",
     "open_thread",
+    # Found in the browser lab: gemma 3 270M opened with "Hello, Mira! ...
+    # I'm going to tell you a story", the narrator talking instead of telling.
+    "tell you a story",
+    "read you a story",
+    "to be here to read",
 )
 
 # The model leaked its own JSON scaffolding into the story. Reading raw JSON

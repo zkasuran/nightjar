@@ -7,7 +7,7 @@
 import { env, pipeline, TextStreamer, type TextGenerationPipeline } from "@huggingface/transformers";
 
 export type In =
-  | { type: "load"; model: string; device: "webgpu" | "wasm"; dtype: "q4f16" | "q4" }
+  | { type: "load"; model: string; device: "webgpu" | "wasm"; dtype: "q4f16" | "q8" }
   | { type: "generate"; system: string; prompt: string; maxTokens: number };
 export type Out =
   | { type: "progress"; file: string; loaded: number; total: number }
@@ -22,10 +22,14 @@ env.allowLocalModels = false;
 env.allowRemoteModels = true;
 // Self hosted ONNX Runtime: no script is ever loaded from a CDN.
 env.useWasmCache = false;
-if (env.backends.onnx.wasm) {
+/** The asyncify build serves WebGPU. The plain build carries the full CPU
+ *  kernel set (GatherBlockQuantized is missing from the asyncify CPU path). */
+function useOrt(device: "webgpu" | "wasm") {
+  const name = device === "webgpu" ? "ort-wasm-simd-threaded.asyncify" : "ort-wasm-simd-threaded";
+  if (!env.backends.onnx.wasm) return;
   env.backends.onnx.wasm.wasmPaths = {
-    mjs: new URL("/ort/ort-wasm-simd-threaded.asyncify.mjs", self.location.origin).href,
-    wasm: new URL("/ort/ort-wasm-simd-threaded.asyncify.wasm", self.location.origin).href,
+    mjs: new URL(`/ort/${name}.mjs`, self.location.origin).href,
+    wasm: new URL(`/ort/${name}.wasm`, self.location.origin).href,
   };
   env.backends.onnx.wasm.numThreads = 1;
 }
@@ -38,6 +42,7 @@ self.onmessage = async (e: MessageEvent<In>) => {
   try {
     if (m.type === "load") {
       if (!ALLOWED.has(m.model)) throw new Error("model not on the allow list");
+      useOrt(m.device);
       const t0 = performance.now();
       gen = (await pipeline("text-generation", m.model, {
         device: m.device,
