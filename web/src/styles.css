@@ -345,3 +345,7 @@ table.data input[type="number"] { width: 72px; padding: 4px 8px; text-align: rig
 }
 
 @media (max-width: 520px) { .box-top .chip.acc { display: none; } .box-top > span.t-s { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; } .box-top { flex-wrap: nowrap; } }
+
+/* The hero box floats, but holds still under the pointer or focus so its controls are easy to hit. */
+.breathe { animation: breathe 7s ease-in-out infinite; }
+.breathe:hover, .breathe:focus-within { animation-play-state: paused; }

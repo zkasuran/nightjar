@@ -106,7 +106,7 @@ function Body({ d }: { d: Demo }) {
               <span className="chip">Built with PriorLabs-TabPFN</span>
             </motion.div>
           </div>
-          <motion.div initial={{ opacity: 0, y: 24, rotate: 1.5 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ animation: reduce ? undefined : "breathe 7s ease-in-out infinite" }}>
+          <motion.div initial={{ opacity: 0, y: 24, rotate: 1.5 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }} className={reduce ? undefined : "breathe"}>
             <Storybox chapter={ch[k]} autoplay={!reduce} label={`Night ${k + 1} · recorded with ${d.stories.model}`} onEnd={() => setTimeout(() => setK((x) => (x + 1) % ch.length), 1600)} />
           </motion.div>
         </div>
