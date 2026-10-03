@@ -1,0 +1,10 @@
+{
+  "name": "Mira",
+  "age": 4,
+  "reading_grade": 1.0,
+  "loves": ["turtles", "the moon", "her red boots", "snow"],
+  "avoid": ["thunder", "basement", "being alone", "dogs barking"],
+  "narrator_name": "Dad",
+  "narrator_voice_id": null,
+  "bedtime_hour": 19
+}

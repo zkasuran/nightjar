@@ -1,0 +1,44 @@
+{
+  "title": "Pim and the Moon's Smile",
+  "text": "The moon is quiet now, you see.\nThe moon is a gentle friend, just like you.\nPim the turtle is slow, very slow.\nHe\u2019s watching the stars, happy and low.\nThe stars are like tiny lights,\nTwinkling softly, quietly.\n\nPim feels a warm, soft glow,\nLike a tiny, sleepy snow.\nHe walks to the chimney, so near,\nListening to the moon's soft cheer.\n\nA little flower grows slow,\nJust like Pim\u2019s gentle flow.\nThe moon smiles a tiny bit,\nLike a small, peaceful fit.\nIt's cozy and warm tonight,\nShining softly with its light.\nSleepy, sleepy, all dreams,\nSafe and warm, it always seems.\n\n$$\\close_thread$$",
+  "night": "2026-10-04",
+  "knobs": {
+    "target_words": 220,
+    "pace_wpm": 95,
+    "calm_level": 5,
+    "cast": [
+      "Pim the Turtle",
+      "The Moon"
+    ],
+    "is_sequel": true
+  },
+  "attempts": 3,
+  "rejected": [
+    [
+      "too short: 21 words < 60"
+    ],
+    [
+      "too short: 9 words < 60"
+    ]
+  ],
+  "rejected_drafts": [
+    {
+      "attempt": 1,
+      "title": "pim the turtle and the quiet moon",
+      "text": "the moon was shining softly tonight, just like a pearl. pim the turtle was waiting near the chimney, very, very slowly.",
+      "violations": [
+        "too short: 21 words < 60"
+      ]
+    },
+    {
+      "attempt": 2,
+      "title": "the moon comes down",
+      "text": "the moon is quiet tonight. it is very small.",
+      "violations": [
+        "too short: 9 words < 60"
+      ]
+    }
+  ],
+  "gen_ms": 87924,
+  "eval_tokens": 225
+}

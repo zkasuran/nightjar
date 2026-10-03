@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: LicenseRef-zkasuran-SAND-1.0
+# Response headers for static hosts that read _headers (Cloudflare Pages, Netlify).
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
+  Content-Security-Policy: frame-ancestors 'none'

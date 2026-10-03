@@ -1,0 +1,20 @@
+{
+  "title": "Pim and The Moon\u2019s Sleepy Dream",
+  "text": "The moon is sleepy tonight. It\u2019s so small, like a tiny pearl in the sky. Pim the turtle is moving slowly, very, very slow.\n\nIt's getting dark and warm, just a little bit.\nA little bit of snow is falling, soft and white.\n\nPim looks at the moon.  The moon smiles gently.\n\nThere\u2019s a little leaf in the snow, shiny and brown.\nPim gently touches it.  It feels smooth as silk.\n\nThe moon shines brighter even more, watching closely.\n\nPim keeps moving, and the snow keeps falling down.\n\nThe night is quiet and peaceful.\n\nPim feels sleepy already, a tiny wave of calm.\nThe moon and Pim are sleeping now.\n\nSweet dreams, little one.  Sleep tight.\n\nOpen thread:  Maybe tomorrow the moon will show Pim a rainbow.",
+  "night": "2026-10-10",
+  "knobs": {
+    "target_words": 220,
+    "pace_wpm": 95,
+    "calm_level": 5,
+    "cast": [
+      "Pim the Turtle",
+      "The Moon"
+    ],
+    "is_sequel": true
+  },
+  "attempts": 1,
+  "rejected": [],
+  "rejected_drafts": [],
+  "gen_ms": 42612,
+  "eval_tokens": 269
+}

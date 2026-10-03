@@ -1,0 +1,33 @@
+{
+  "name": "nightjar-web",
+  "private": true,
+  "version": "0.1.0",
+  "license": "SEE LICENSE IN ../LICENSE",
+  "type": "module",
+  "scripts": {
+    "demo": "cd .. && python3 scripts/export_demo.py",
+    "dev": "vite",
+    "build": "tsc -p . && vite build && node scripts/check-dist.mjs",
+    "typecheck": "tsc -p .",
+    "test": "node --test test/*.test.mjs",
+    "preview": "vite preview",
+    "verify": "npm run typecheck && npm test && npm run build && npm audit --audit-level=low",
+    "deploy": "bash scripts/deploy.sh"
+  },
+  "dependencies": {
+    "@fontsource-variable/fraunces": "5.3.0",
+    "@fontsource-variable/inter-tight": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@huggingface/transformers": "4.3.0",
+    "motion": "13.4.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "5.2.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.6"
+  }
+}

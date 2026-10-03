@@ -1,0 +1,26 @@
+{
+  "characters": [
+    {
+      "name": "Pim the Turtle",
+      "description": "a very slow turtle who is never in a hurry and always arrives anyway",
+      "first_seen": "2026-09-26"
+    },
+    {
+      "name": "The Moon",
+      "description": "a quiet friend who waits behind the chimney and listens",
+      "first_seen": "2026-09-27"
+    }
+  ],
+  "chapters": [
+    {
+      "night": "2026-10-02",
+      "title": "The Slow Turtle Again",
+      "summary": "Mira and Pim the Turtle walked to the end of the garden path and counted seven soft things on the way.",
+      "cast": [
+        "Pim the Turtle",
+        "The Moon"
+      ],
+      "open_thread": "There is still one soft thing at the end of the path they did not reach."
+    }
+  ]
+}

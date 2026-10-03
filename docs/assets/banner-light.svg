@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7e9d3"/><stop offset="1" stop-color="#fbf8f2"/></linearGradient>
+<radialGradient id="m" cx=".4" cy=".38" r=".7"><stop offset="0" stop-color="#fff6dc"/><stop offset="1" stop-color="#f2cd7e"/></radialGradient>
+<radialGradient id="h" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffdf9e" stop-opacity=".55"/><stop offset="1" stop-color="#ffdf9e" stop-opacity="0"/></radialGradient></defs>
+<rect width="1280" height="400" rx="24" fill="url(#g)"/>
+<circle cx="1040" cy="170" r="150" fill="url(#h)"/><circle cx="1040" cy="170" r="72" fill="url(#m)"/>
+<circle cx="1018" cy="152" r="10" fill="#e6b863" opacity=".5"/><circle cx="1062" cy="196" r="14" fill="#e6b863" opacity=".4"/>
+<g transform="translate(72 86)"><circle cx="22" cy="22" r="22" fill="#8f5300"/><path d="M30 9a13 13 0 1 0 4.3 18.3A10.7 10.7 0 0 1 30 9z" fill="#f7e9d3"/></g>
+<text x="130" y="122" font-family="Georgia, 'Times New Roman', serif" font-size="44" font-weight="700" fill="#161a2e">Nightjar</text>
+<text x="72" y="210" font-family="Georgia, 'Times New Roman', serif" font-size="46" font-weight="700" fill="#161a2e">Bedtime stories that learn</text>
+<text x="72" y="266" font-family="Georgia, 'Times New Roman', serif" font-size="46" font-weight="700" fill="#161a2e">what puts her to sleep.</text>
+<text x="72" y="326" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="21" fill="#5a5f78">Local Gemma writes it. A hard guardrail screens it. TabPFN tunes tomorrow.</text>
+</svg>

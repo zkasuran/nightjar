@@ -1,0 +1,33 @@
+{
+  "title": "The Moon and Pim",
+  "text": "The Moon is quiet tonight. It glows softly, watching from the chimney. Pim the Turtle slides along the path. It\u2019s a long, slow walk.  Mira sees a beautiful snow flake.\n\nPim keeps going. The Moon smiles a tiny bit. They walk past a flower.  It smells fresh and sweet.  Pim feels a little sleepy. Soon, the stars appear, twinkling and bright.\n\nThe Moon whispers, 'Sleepy dreams, little one.' Pim smiles and slides into a cozy spot.\n\nEveryone is safe and warm, dreaming softly. They are ready for sleepy time.  {open_thread}  Warm hugs and good dreams follow.",
+  "night": "2026-10-05",
+  "knobs": {
+    "target_words": 220,
+    "pace_wpm": 95,
+    "calm_level": 5,
+    "cast": [
+      "Pim the Turtle",
+      "The Moon"
+    ],
+    "is_sequel": true
+  },
+  "attempts": 2,
+  "rejected": [
+    [
+      "too short: 30 words < 60"
+    ]
+  ],
+  "rejected_drafts": [
+    {
+      "attempt": 1,
+      "title": "pim and the quiet moon",
+      "text": "the moon smiled softly tonight, looking down from her chimney.  pim the turtle was slow but steady, going towards the garden path.  they walked softly, one step at a time.",
+      "violations": [
+        "too short: 30 words < 60"
+      ]
+    }
+  ],
+  "gen_ms": 58389,
+  "eval_tokens": 213
+}

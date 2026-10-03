@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Generated stories, audio and books
+out/
+
+# The real child's profile stays out of the repo; child.example.json is tracked.
+data/child.json
+
+# Signed voice-consent records
+consent/
+
+.env
+
+# web build output
+web/node_modules/
+web/dist/
+web/.vercel/
+web/public/ort/
+!demo/out/

@@ -1,0 +1,34 @@
+[project]
+name = "nightjar"
+version = "0.1.0"
+description = "A bedtime story engine that learns what actually puts her to sleep"
+requires-python = ">=3.11"
+dependencies = []  # core loop is stdlib-only, on purpose
+
+[project.optional-dependencies]
+# Real tabular foundation model instead of the k-NN fallback.
+tune = ["tabpfn>=2.0", "numpy>=1.26"]
+# PDF output for the printable book.
+book = ["weasyprint>=62"]
+
+[project.scripts]
+nightjar = "nightjar.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["nightjar"]
+
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+exclude = [".venv", "web"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "I"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

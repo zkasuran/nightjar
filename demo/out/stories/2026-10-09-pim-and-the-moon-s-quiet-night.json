@@ -1,0 +1,20 @@
+{
+  "title": "Pim and The Moon's Quiet Night",
+  "text": "The moon is shining soft tonight, very gently, like tiny sparkles of light. Pim the Turtle is still so, still so slow. He moves a little bit, just watch him.  The moon is a quiet friend, watching from behind the chimney.\n\nThe snow is falling softly, just a few little flakes.  Each flake is the size of a small finger.  Pim watches them fall. They go down, down, down to the ground.\n\nThe moon smiles a little bit, as if it were happy to see the snow.  Pim stays still with the snow, not moving fast. It feels warm and cozy.\n\nSoon, it's getting late.  It\u2019s time to close your eyes, little one.  You're safe and warm, nestled under your blanket.  Sleepy\u2026 sleepy\u2026 Very, very sleepy.\n\nMoon and Pim, both sleeping...",
+  "night": "2026-10-09",
+  "knobs": {
+    "target_words": 220,
+    "pace_wpm": 95,
+    "calm_level": 5,
+    "cast": [
+      "Pim the Turtle",
+      "The Moon"
+    ],
+    "is_sequel": true
+  },
+  "attempts": 1,
+  "rejected": [],
+  "rejected_drafts": [],
+  "gen_ms": 44342,
+  "eval_tokens": 267
+}

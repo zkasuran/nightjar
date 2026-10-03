@@ -1,0 +1,20 @@
+{
+ "files": {
+  "stories.json": {
+   "sha256": "1dc4573aea3795c189eeeb7d433e89b38f2c8adf495b5298fac6179c46078e20",
+   "bytes": 13568
+  },
+  "log.json": {
+   "sha256": "e6854eecf63e0f8d8def9be9829851d2a72d14e419759c681c5183077d7370e5",
+   "bytes": 2804
+  },
+  "tuner.json": {
+   "sha256": "527c7ce54c2961490400fab35931390025ea88c2905cc1046f8002740d1b542a",
+   "bytes": 24033
+  },
+  "guard.json": {
+   "sha256": "091a6c5d67ee5437a4ff415d71ca2907748328f8b3b113fb88a6cb1d9818ddee",
+   "bytes": 14486
+  }
+ }
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Pim and the Sleeping Moon",
+  "text": "The moon smiled softly from its chimney tonight. Pim the Turtle was waiting near the roses. Mira watched him all day long.\n    The moon whispered secrets of stars, shimmering like snow.\n    Pim moved slowly, a tiny, gentle ripple.\n    He kept walking past the tall grass, quiet and bright.\n    It was warm, and the sun was falling low.\n    Mira held her red boots tightly and thought about them.\n    Pim continued to walk, a peaceful journey.\n    He reached a little patch of shade, soft and green.\n    The moon glowed even brighter now.\n    Pim stopped, watching a little flower bloom.\n    It looked like tiny pearls, all white.\n    Mira smiled, and she felt sleepy too.\n\nAll the warm, soft things are safe and sleeping now. Good night, little one.\n    \nTomorrow's storyteller will tell a sleepy squirrel story.",
+  "night": "2026-10-03",
+  "knobs": {
+    "target_words": 220,
+    "pace_wpm": 95,
+    "calm_level": 5,
+    "cast": [
+      "Pim the Turtle",
+      "The Moon"
+    ],
+    "is_sequel": true
+  },
+  "attempts": 1,
+  "rejected": [],
+  "rejected_drafts": [],
+  "gen_ms": 46492,
+  "eval_tokens": 268
+}

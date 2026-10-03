@@ -1,0 +1,22 @@
+Nightjar
+Copyright (c) 2026 zkasuran. Our own files: LicenseRef-zkasuran-SAND-1.0 (see LICENSE).
+
+Third-party components keep their own terms. None of their weights or source
+are redistributed in this repository; they are installed or fetched at run time.
+
+Gemma 3 (gemma3:1b via Ollama; onnx-community/gemma-3-270m-it-ONNX and
+onnx-community/gemma-3-1b-it-ONNX-GQA fetched by the browser lab)
+  Gemma is provided under and subject to the Gemma Terms of Use found at
+  ai.google.dev/gemma/terms
+  Use restrictions: ai.google.dev/gemma/prohibited_use_policy
+
+TabPFN v2 regressor (tabpfn==2.2.1, weights from Prior-Labs/TabPFN-v2-reg)
+  Built with PriorLabs-TabPFN.
+  Prior Labs License 1.1: https://github.com/PriorLabs/TabPFN/blob/49394b053a6759cfe68e90c21a2d51c31b396768/LICENSE
+
+@huggingface/transformers (Apache-2.0), onnxruntime-web (MIT, the two
+ort-wasm-simd-threaded.asyncify files are copied from node_modules into the
+built site), React (MIT), motion (MIT), Vite (MIT).
+
+Fonts: Fraunces, Inter Tight, JetBrains Mono via @fontsource-variable, all
+SIL Open Font License 1.1.

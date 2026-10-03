@@ -1,0 +1,20 @@
+{
+  "title": "Pim and The Moon\u2019s Gentle Sleep",
+  "text": "The Moon is hiding close to the chimney today. It\u2019s a very quiet friend, and it glows soft and white.\n\nPim the Turtle is already sleepy. His warm boots are soft and blue.\n\nThe Moon is watching Pim. It\u2019s a peaceful sight.\nThe Moon whispers: \"Let the soft snow fall.\"\n\nSoon, a little bit of snow started to fall. It fell slow, like a dream.\nThe snowflakes are tiny and sparkly.\n\nPim the Turtle doesn't move. He just looks at the snow. It looks soft and shiny.\n\nThe Moon shines a little bit brighter. It feels cozy.\n\nPim smiles, feeling warm.\nThe snow keeps falling softly.\n\nPim is very quiet now and he feels safe.\n\nThe Moon is glowing softly.\nA little bit of snow drifts near.\n\nPim is comfy and sleepy. He's tired.\n\nPim curls up and closes his eyes. Sleepy, sleepy. The Moon shines too.\n\nThe end. Soon everyone will fall asleep.",
+  "night": "2026-10-08",
+  "knobs": {
+    "target_words": 220,
+    "pace_wpm": 95,
+    "calm_level": 5,
+    "cast": [
+      "Pim the Turtle",
+      "The Moon"
+    ],
+    "is_sequel": true
+  },
+  "attempts": 1,
+  "rejected": [],
+  "rejected_drafts": [],
+  "gen_ms": 43210,
+  "eval_tokens": 296
+}

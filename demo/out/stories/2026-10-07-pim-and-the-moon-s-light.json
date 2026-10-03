@@ -1,0 +1,33 @@
+{
+  "title": "Pim and The Moon\u2019s Light",
+  "text": "The moon is sleepy tonight, soft and bright.  Pim the turtle is here, slowly and near.  The moon is watching, a gentle glow.  Pim is thinking, 'Let's dream softly now.'  He wishes for a tiny flame, a golden spark.  The moon smiles quietly, a warm, peaceful space.  Pim and The Moon, quiet and sweet, dream softly.  Just little clouds, gently falling at night.  They feel warm, safe, and nice.  Sleepy now, little one, close your eyes.",
+  "night": "2026-10-07",
+  "knobs": {
+    "target_words": 220,
+    "pace_wpm": 95,
+    "calm_level": 5,
+    "cast": [
+      "Pim the Turtle",
+      "The Moon"
+    ],
+    "is_sequel": true
+  },
+  "attempts": 2,
+  "rejected": [
+    [
+      "too short: 16 words < 60"
+    ]
+  ],
+  "rejected_drafts": [
+    {
+      "attempt": 1,
+      "title": "pim and the moon's gentle dreams",
+      "text": "the moon was quiet, just peeking behind the chimney. it was a soft silver light tonight.",
+      "violations": [
+        "too short: 16 words < 60"
+      ]
+    }
+  ],
+  "gen_ms": 52128,
+  "eval_tokens": 186
+}

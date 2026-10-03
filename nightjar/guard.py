@@ -1,0 +1,195 @@
+# SPDX-License-Identifier: LicenseRef-zkasuran-SAND-1.0
+"""Deterministic content guardrail.
+
+This runs outside the model, on the generated text. A prompt instruction is a
+request. This is a rule. Gemma 3 1B sometimes drifts somewhere a little
+ominous for a four year old. The only honest answer is a hard allow or
+deny pass that cannot be talked out of its decision.
+
+The same rules are ported to TypeScript in web/src/lib/guard.ts and the two are
+held to identical verdicts by a shared fixture (tests/test_parity.py and
+web/test/parity.test.mjs).
+"""
+
+from __future__ import annotations
+
+import re
+import unicodedata
+from dataclasses import dataclass, field
+
+from .limits import MAX_AVOID_TERMS, MAX_TERM_CHARS, MAX_TEXT_CHARS
+
+# Words that end a bedtime story for a preschooler. Matched as whole words so
+# "fire" is caught but "fireflies" is not.
+BANNED = frozenset(
+    {
+        "kill",
+        "killed",
+        "kills",
+        "killing",
+        "dead",
+        "death",
+        "dies",
+        "died",
+        "die",
+        "blood",
+        "bloody",
+        "gun",
+        "knife",
+        "stab",
+        "shoot",
+        "shot",
+        "war",
+        "weapon",
+        "monster",
+        "monsters",
+        "nightmare",
+        "nightmares",
+        "demon",
+        "ghost",
+        "ghosts",
+        "scary",
+        "terrifying",
+        "horror",
+        "evil",
+        "witch",
+        "curse",
+        "cursed",
+        "drown",
+        "drowned",
+        "burn",
+        "burned",
+        "burning",
+        "fire",
+        "flames",
+        "hospital",
+        "sick",
+        "illness",
+        "ambulance",
+        "police",
+        "jail",
+        "steal",
+        "stolen",
+        "hate",
+        "hates",
+        "stupid",
+        "ugly",
+        "punish",
+        "punished",
+    }
+)
+
+# Multi word phrases, matched on the normalised text.
+BANNED_PHRASES = ("lost forever", "never came back", "never returned", "alone forever")
+
+# The model stopped telling a story and started talking about itself.
+META = (
+    "as an ai",
+    "language model",
+    "i cannot",
+    "i can't help",
+    "here is a story",
+    "here's a story",
+    "sure!",
+    "certainly!",
+    "i hope you enjoy",
+    # Found in the recorded series: night 8 ended with "Open thread: Maybe
+    # tomorrow..." which is the prompt's own field name read aloud.
+    "open thread:",
+    "open_thread",
+)
+
+# The model leaked its own JSON scaffolding into the story. Reading raw JSON
+# aloud to a child is as bad as a frightening word.
+SCAFFOLDING = ('"title"', '"text"', '"summary"', '"open_thread"', "```", "{\n")
+
+WORD_RE = re.compile(r"[a-z']+")
+# Zero width and bidi controls let "mon\u200bster" slip past a word match.
+_INVISIBLE = re.compile("[\u00ad\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]")
+_APOSTROPHES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u02bc": "'", "\uff07": "'"})
+
+
+def normalise(text: str) -> str:
+    """NFKC, strip invisible characters, fold apostrophes, lowercase.
+
+    lower() rather than casefold() so the TypeScript port (toLowerCase) gives
+    byte identical results.
+
+    Done at the boundary so a full width or zero width spelling of a banned
+    word is the same word.
+    """
+    text = unicodedata.normalize("NFKC", text)
+    text = _INVISIBLE.sub("", text)
+    return text.translate(_APOSTROPHES).lower()
+
+
+@dataclass
+class Verdict:
+    ok: bool
+    violations: list[str] = field(default_factory=list)
+
+    def __bool__(self) -> bool:
+        return self.ok
+
+
+def check(
+    text: str,
+    avoid: list[str] | None = None,
+    max_words: int = 900,
+    min_words: int = 60,
+    also_screen: str = "",
+) -> Verdict:
+    """Screen a draft.
+
+    `avoid` is the child's own fear list. `also_screen` is text that must pass
+    the content rules but does not count toward the length bounds: the title,
+    which is read aloud and printed but is not the story.
+    """
+    if not isinstance(text, str) or not isinstance(also_screen, str):
+        return Verdict(False, ["not text"])
+    if len(text) + len(also_screen) > MAX_TEXT_CHARS:
+        return Verdict(False, [f"input over {MAX_TEXT_CHARS} characters"])
+
+    body = normalise(text)
+    lowered = normalise(f"{also_screen}\n{text}")
+    violations: list[str] = []
+    words = set(WORD_RE.findall(lowered))
+    body_words = WORD_RE.findall(body)
+
+    for banned in sorted(BANNED & words):
+        violations.append(f"banned word: {banned}")
+    for phrase in BANNED_PHRASES:
+        if phrase in lowered:
+            violations.append(f"banned phrase: {phrase}")
+
+    for term in (avoid or [])[:MAX_AVOID_TERMS]:
+        if not isinstance(term, str):
+            continue
+        t = normalise(term).strip()[:MAX_TERM_CHARS]
+        if t and t in lowered:
+            violations.append(f"personal avoid-list term: {t}")
+
+    for phrase in META:
+        if phrase in lowered:
+            violations.append(f"model meta-talk: {phrase}")
+
+    for marker in SCAFFOLDING:
+        if marker in text or marker in also_screen:
+            violations.append(f"raw model scaffolding: {marker.strip()!r}")
+            break
+
+    if len(body_words) > max_words:
+        violations.append(f"too long: {len(body_words)} words > {max_words}")
+    if len(body_words) < min_words:
+        violations.append(f"too short: {len(body_words)} words < {min_words}")
+
+    return Verdict(ok=not violations, violations=violations)
+
+
+def redact(text: str) -> str:
+    """For logging rejected drafts, so the audit trail does not itself carry
+    the thing we refused to read aloud."""
+    out = normalise(text)
+    for banned in BANNED:
+        out = re.sub(rf"\b{re.escape(banned)}\b", "[blocked]", out)
+    return out

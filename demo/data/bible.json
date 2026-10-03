@@ -1,0 +1,106 @@
+{
+  "characters": [
+    {
+      "name": "Pim the Turtle",
+      "description": "a very slow turtle who is never in a hurry and always arrives anyway",
+      "first_seen": "2026-09-26"
+    },
+    {
+      "name": "The Moon",
+      "description": "a quiet friend who waits behind the chimney and listens",
+      "first_seen": "2026-09-27"
+    }
+  ],
+  "chapters": [
+    {
+      "night": "2026-10-02",
+      "title": "The Slow Turtle Again",
+      "summary": "Mira and Pim the Turtle walked to the end of the garden path and counted seven soft things on the way.",
+      "cast": [
+        "Pim the Turtle",
+        "The Moon"
+      ],
+      "open_thread": "There is still one soft thing at the end of the path they did not reach."
+    },
+    {
+      "night": "2026-10-03",
+      "title": "Pim and the Sleeping Moon",
+      "summary": "Pim and the Moon were watching a little flower grow together tonight.",
+      "cast": [
+        "Pim the Turtle",
+        "The Moon"
+      ],
+      "open_thread": "The stars glittered like tiny ice crystals."
+    },
+    {
+      "night": "2026-10-04",
+      "title": "Pim and the Moon's Smile",
+      "summary": "The moon and Pim are quiet together, watching stars.",
+      "cast": [
+        "Pim the Turtle",
+        "The Moon"
+      ],
+      "open_thread": ""
+    },
+    {
+      "night": "2026-10-05",
+      "title": "The Moon and Pim",
+      "summary": "Pim and The Moon watch snowy flakes. It\u2019s a nice night.",
+      "cast": [
+        "Pim the Turtle",
+        "The Moon"
+      ],
+      "open_thread": "Pim and the snow are really pretty."
+    },
+    {
+      "night": "2026-10-06",
+      "title": "Pim and the Soft Snow",
+      "summary": "Pim and The Moon are watching snow fall.",
+      "cast": [
+        "Pim the Turtle",
+        "The Moon"
+      ],
+      "open_thread": ""
+    },
+    {
+      "night": "2026-10-07",
+      "title": "Pim and The Moon\u2019s Light",
+      "summary": "Pim and The Moon are dreaming of a warm, glowing flame.",
+      "cast": [
+        "Pim the Turtle",
+        "The Moon"
+      ],
+      "open_thread": "Tomorrow, the moon shines even brighter."
+    },
+    {
+      "night": "2026-10-08",
+      "title": "Pim and The Moon\u2019s Gentle Sleep",
+      "summary": "Tomorrow, the Moon shines a little bit brighter and the snow will fall just a little harder.",
+      "cast": [
+        "Pim the Turtle",
+        "The Moon"
+      ],
+      "open_thread": ""
+    },
+    {
+      "night": "2026-10-09",
+      "title": "Pim and The Moon's Quiet Night",
+      "summary": "Tomorrow, the moon shines brighter and the snow falls softly.",
+      "cast": [
+        "Pim the Turtle",
+        "The Moon"
+      ],
+      "open_thread": "Pim found a little leaf. It felt smooth and wet.\u201d"
+    },
+    {
+      "night": "2026-10-10",
+      "title": "Pim and The Moon\u2019s Sleepy Dream",
+      "summary": "Tomorrow, the moon and Pim will watch the snow and the leaf together, making the night so calm.",
+      "cast": [
+        "Pim the Turtle",
+        "The Moon"
+      ],
+      "open_thread": ""
+    }
+  ]
+}

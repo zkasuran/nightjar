@@ -1,0 +1,20 @@
+{
+  "title": "Pim and the Soft Snow",
+  "text": "The Moon is quiet. It\u2019s a soft white light.\nPim the Turtle is slow and sleepy.\nHe sees the snow falling fast.\n\nIt\u2019s falling in little flakes.\nEach flake is a tiny grey dot.\n\nPim walks a little.\n He follows each flake.\n\nThey go down the hill.\n It makes a happy, quiet sound.\n\nThe snow is so soft and white.\nLike a fluffy blanket.\n\nPim smiles, a very gentle smile.\nHe feels cozy and still.\n\nThe Moon shines softly.\nIt\u2019s like a warm, quiet hug.\n\nPim starts to drift slowly.\nHe\u2019s warm and comfy.\nHe\u2019s already sleepy.\n\nSleep is coming...",
+  "night": "2026-10-06",
+  "knobs": {
+    "target_words": 220,
+    "pace_wpm": 95,
+    "calm_level": 5,
+    "cast": [
+      "Pim the Turtle",
+      "The Moon"
+    ],
+    "is_sequel": true
+  },
+  "attempts": 1,
+  "rejected": [],
+  "rejected_drafts": [],
+  "gen_ms": 34412,
+  "eval_tokens": 232
+}
