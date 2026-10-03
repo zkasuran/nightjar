@@ -142,7 +142,7 @@ export function Privacy() {
             <Tick>They can withdraw it and the voice is deleted</Tick>
             <Tick>She is told whose voice it is</Tick>
             <Tick ok={false}>No scraping old videos or voicemails, ever</Tick>
-            <p className="t-xs">This site reads stories with your device's own built in voice. The repo ships CONSENT.md with the record template.</p>
+            <p className="t-xs">The voice on this site is Kokoro's stock af_heart voice, rendered offline on the laptop. Nobody's voice was cloned. The repo ships CONSENT.md with the record template.</p>
           </Reveal>
         </div>
       </section>
@@ -260,7 +260,7 @@ export const Reports = withDemo((d) => {
                 ["Child profile", <Sample>Sample</Sample>, "A placeholder child, not a real person"],
                 ["Minutes to sleep", <Sample>Sample</Sample>, "Representative rows, never measured"],
                 ["Night dates", <Sample>Sequence</Sample>, "One recording session, numbered as nights"],
-                ["Narration", <Sample>Device voice</Sample>, "Web Speech here. The ElevenLabs path exists but was not run"],
+                ["Narration and word timing", <Real>Real</Real>, "Kokoro-82M (af_heart) offline on the laptop, word clock from its token timestamps. ElevenLabs path exists but was not run"],
               ]}
             />
           </Reveal>

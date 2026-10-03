@@ -25,6 +25,16 @@ export interface Chapter {
   gen_ms: number;
   eval_tokens: number;
   features: Record<string, number>;
+  audio: Narration | null;
+}
+export interface Narration {
+  src: string;
+  sha256: string;
+  voice: string;
+  duration: number;
+  speech_wpm: number;
+  overall_wpm: number;
+  words: Array<[number, number]>;
 }
 export interface Night {
   index: number;
@@ -121,6 +131,17 @@ function validate(d: Demo): Demo {
   for (const c of s.chapters) {
     need(isStr(c.title) && isStr(c.text) && c.text.length < 20_000 && isStr(c.night) && isNum(c.knobs?.pace_wpm), "chapter");
     need(isArr(c.rejected) && c.rejected.every((r) => isStr(r.text) && isArr(r.violations)), "rejected drafts");
+    if (c.audio != null) {
+      const a = c.audio;
+      need(isStr(a.src) && /^audio\/[a-z0-9-]{1,120}\.mp3$/.test(a.src) && isStr(a.sha256) && /^[0-9a-f]{64}$/.test(a.sha256), "audio src");
+      need(isNum(a.duration) && a.duration > 0 && a.duration < 900 && isArr(a.words), "audio duration");
+      need(a.words.length === (c.text.match(/\S+/g) ?? []).length, "audio word clock length");
+      let last = -1;
+      for (const w of a.words) {
+        need(isArr(w) && isNum(w[0]) && isNum(w[1]) && w[0] >= last && w[1] >= w[0] && w[1] <= a.duration + 0.5, "audio word clock order");
+        last = w[0];
+      }
+    }
   }
   need(s.child && isStr(s.child.name) && isArr(s.child.avoid), "child");
   need(isArr(d.log.rows) && d.log.rows.length <= 5000 && d.log.sample === true, "log");
@@ -128,6 +149,25 @@ function validate(d: Demo): Demo {
   need(isArr(d.tuner.grid) && d.tuner.grid.length === 72 && d.tuner.grid.every((g) => isNum(g.knn)), "tuner grid");
   need(isArr(d.guard.banned) && isArr(d.guard.cases) && d.guard.banned.every(isStr), "guard rules");
   return d;
+}
+
+const AUDIO_MAX = 4_000_000;
+
+/** Fetch a narration, check its sha256 from the verified fixture, hand back a
+ *  blob: URL. Fully buffered, so pause and resume never wait on the network. */
+export async function loadAudio(n: Narration, base = "/demo/"): Promise<string> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 20_000);
+  try {
+    const res = await fetch(base + n.src, { signal: ctl.signal });
+    if (!res.ok) throw new DemoError(`${n.src}: HTTP ${res.status}`);
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength > AUDIO_MAX) throw new DemoError(`${n.src}: over the size ceiling`);
+    if ((await sha256(buf)) !== n.sha256) throw new DemoError(`${n.src} does not match its sha256`);
+    return URL.createObjectURL(new Blob([buf], { type: "audio/mpeg" }));
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 const cache = new Map<string, Promise<Demo>>();

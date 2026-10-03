@@ -18,5 +18,11 @@ TabPFN v2 regressor (tabpfn==2.2.1, weights from Prior-Labs/TabPFN-v2-reg)
 ort-wasm-simd-threaded.asyncify files are copied from node_modules into the
 built site), React (MIT), motion (MIT), Vite (MIT).
 
+Kokoro-82M (hexgrad/Kokoro-82M, weights and the af_heart voice), Apache-2.0. Used
+offline at build time to narrate the recorded chapters. The MP3s in
+web/public/demo/audio are its output. kokoro and misaki Python packages,
+Apache-2.0. espeak-ng (GPL-3.0, via espeakng-loader) may be used by misaki for
+unknown words at render time; it is not distributed here.
+
 Fonts: Fraunces, Inter Tight, JetBrains Mono via @fontsource-variable, all
 SIL Open Font License 1.1.

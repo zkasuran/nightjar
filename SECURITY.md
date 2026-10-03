@@ -16,6 +16,7 @@ are untrusted once they leave the build.
 | Web attacker | Script injection, framing, CDN compromise | Build time CSP (`default-src 'none'`, theme script by hash), no innerHTML anywhere, ORT self hosted, `frame-ancestors 'none'` header | `web/vite.config.ts`, `web/vercel.json`, `web/scripts/check-dist.mjs` | `check-dist.mjs` in the build, headless Chrome run with zero CSP violations |
 | Web attacker | Route parameter injection | Hash segments matched against `^[a-z0-9-]{0,32}$` before use | `web/src/lib/router.ts` | untested beyond the 404 route in the browser run |
 | The lab | Load an arbitrary model id | Worker only loads two allow listed repo ids | `web/src/workers/gemma.ts` | untested |
+| Network | Tampered narration MP3 | sha256 from the verified fixture checked before a blob: URL is made, 4 MB ceiling, 20 s timeout | `web/src/lib/data.ts` `loadAudio` | `web/test/adversarial.test.mjs` |
 | Secrets | ElevenLabs key in argv or logs | Read from `ELEVENLABS_API_KEY` env only, never printed | `nightjar/config.py`, `narrate.py` | untested |
 
 ## Known limits

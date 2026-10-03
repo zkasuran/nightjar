@@ -20,3 +20,5 @@ web/dist/
 web/.vercel/
 web/public/ort/
 !demo/out/
+demo/out/audio/*.wav
+.venv-tts/

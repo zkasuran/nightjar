@@ -25,9 +25,20 @@ class NarrationUnavailable(RuntimeError):
     pass
 
 
+def _has_kokoro() -> bool:
+    try:
+        import importlib.util
+
+        return importlib.util.find_spec("kokoro") is not None
+    except Exception:
+        return False
+
+
 def available() -> str:
     if SETTINGS.elevenlabs_key:
         return "elevenlabs"
+    if _has_kokoro():
+        return "kokoro-local"
     if shutil.which("piper"):
         return "piper-local"
     if shutil.which("espeak-ng"):
@@ -45,6 +56,8 @@ def narrate(text: str, voice_id: str | None, slug: str, pace_wpm: int = 110) -> 
         if not voice_id:
             raise NarrationUnavailable("ELEVENLABS_API_KEY is set but no narrator_voice_id in child.json")
         return _elevenlabs(text, voice_id, out_dir / f"{slug}.mp3", pace_wpm)
+    if backend == "kokoro-local":
+        return _kokoro(text, out_dir / f"{slug}.wav", pace_wpm)
     if backend in ("piper-local", "espeak-local"):
         return _local(text, out_dir / f"{slug}.wav", backend, pace_wpm)
     raise NarrationUnavailable("no narration backend: set ELEVENLABS_API_KEY or install piper/espeak-ng for fully-offline speech")
@@ -74,6 +87,20 @@ def _elevenlabs(text: str, voice_id: str, out: Path, pace_wpm: int) -> Path:
             out.write_bytes(resp.read())
     except urllib.error.HTTPError as exc:
         raise NarrationUnavailable(f"ElevenLabs {exc.code}: {exc.read()[:200]!r}") from exc
+    return out
+
+
+def _kokoro(text: str, out: Path, pace_wpm: int) -> Path:
+    """Offline Kokoro-82M narration plus a word clock next to the audio."""
+    import soundfile as sf
+
+    from . import kokoro_voice
+
+    n = kokoro_voice.render(text, pace_wpm)
+    sf.write(out, n.audio, kokoro_voice.SAMPLE_RATE)
+    out.with_suffix(".words.json").write_text(
+        json.dumps({"duration": round(n.duration, 3), "words": [[round(a, 3), round(b, 3)] for a, b in n.words]})
+    )
     return out
 
 

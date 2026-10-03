@@ -222,7 +222,11 @@ label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color:
 .reader .w.now { color: var(--acc); opacity: 1; }
 .box-foot { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-top: 1px solid var(--edge); }
 .progress { flex: 1; height: 6px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
-.progress > i { display: block; height: 100%; background: linear-gradient(90deg, var(--acc), var(--acc-2)); border-radius: inherit; transition: width 200ms linear; }
+.progress > i { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--acc), var(--acc-2)); border-radius: inherit; }
+.progress.seekable { height: 8px; cursor: pointer; touch-action: none; position: relative; }
+.progress.seekable:hover, .progress.seekable:focus-visible { height: 10px; }
+.reader .w { cursor: pointer; }
+.reader .w:hover { text-decoration: underline; text-decoration-color: var(--acc); text-underline-offset: 4px; }
 .play { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--acc); color: var(--acc-ink); display: grid; place-items: center; cursor: pointer; flex: none; transition: transform var(--t-fast) var(--ease); }
 .play:hover { transform: scale(1.06); }
 

@@ -38,7 +38,7 @@ function csp(): Plugin {
         "img-src 'self' data:",
         "font-src 'self' data:",
         `connect-src 'self' ${MODEL_HOSTS.join(" ")}`,
-        "media-src 'self'",
+        "media-src 'self' blob:",
         "manifest-src 'self'",
         "base-uri 'none'",
         "form-action 'none'",

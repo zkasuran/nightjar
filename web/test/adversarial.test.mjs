@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { loadDemo } from "../src/lib/data.ts";
+import { loadAudio, loadDemo } from "../src/lib/data.ts";
 import { check, MAX_TEXT_CHARS } from "../src/lib/guard.ts";
 
 const rules = JSON.parse(readFileSync(new URL("../public/demo/guard.json", import.meta.url)));
@@ -71,4 +71,16 @@ test("a manifest that matches a malformed fixture is still rejected by shape che
 test("an oversized response is refused", async () => {
   globalThis.fetch = async () => new Response("x".repeat(2_000_001), { status: 200 });
   await assert.rejects(loadDemo("/t3/"), /ceiling/);
+});
+
+test("a narration file that does not match its sha256 is refused", async () => {
+  const stories = JSON.parse(readFileSync(new URL("../public/demo/stories.json", import.meta.url)));
+  const n = stories.chapters[0].audio;
+  const real = readFileSync(new URL(`../public/demo/${n.src}`, import.meta.url));
+  globalThis.fetch = async () => new Response(real, { status: 200 });
+  const url = await loadAudio(n);
+  assert.match(url, /^blob:/);
+  const bad = Buffer.from(real); bad[5000] ^= 1;
+  globalThis.fetch = async () => new Response(bad, { status: 200 });
+  await assert.rejects(loadAudio(n), /sha256/);
 });

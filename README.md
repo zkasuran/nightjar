@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img alt="tests" src="https://img.shields.io/badge/tests-44%20python%20%2B%2012%20web-2ea44f">
+  <img alt="tests" src="https://img.shields.io/badge/tests-50%20python%20%2B%2014%20web-2ea44f">
   <img alt="npm audit" src="https://img.shields.io/badge/npm%20audit-0-2ea44f">
   <img alt="core deps" src="https://img.shields.io/badge/python%20core%20deps-0-2ea44f">
   <img alt="model" src="https://img.shields.io/badge/model-Gemma%203%2C%20local-f4c46a">
@@ -34,7 +34,7 @@ Why now: a 1B Gemma writes a usable chapter on a CPU laptop in under a minute. T
 
 | Step | Click | You will see |
 |---|---|---|
-| 1 | [Home](https://nightjar-bedtime.vercel.app) | A real recorded chapter read word by word at its tuned pace |
+| 1 | [Home](https://nightjar-bedtime.vercel.app), then Voice off to turn it on | A recorded chapter read aloud by an offline voice, each word lit as it is spoken. Pause, resume or click any word to jump |
 | 2 | [Tuner](https://nightjar-bedtime.vercel.app/#/tuner), then change a minutes value | All 72 settings rescored in your browser and tomorrow's pick moving |
 | 3 | [Guardrail](https://nightjar-bedtime.vercel.app/#/guard), load "zero width bypass" | A hidden character spelling of "monster" refused, with "Python agrees" |
 | 4 | [Story](https://nightjar-bedtime.vercel.app/#/story), night 3 | A chapter that passed on the night and that a later rule now refuses |
@@ -79,7 +79,7 @@ sequenceDiagram
 | Name, age, loves, fear list | `data/child.json` | Never |
 | Characters and chapter summaries | `data/bible.json` | Never |
 | Minutes to sleep per night | `data/bedtime_log.csv` | Never |
-| Tonight's chapter text | memory | Only if you enable ElevenLabs narration |
+| Tonight's chapter text | memory | Never with Kokoro. Only if you enable ElevenLabs narration |
 | Lab requests and stories | your browser tab | Never. Only GETs for public model files |
 
 ## What the guardrail checks
@@ -104,7 +104,7 @@ sequenceDiagram
 | Child profile "Mira" | **Sample** | placeholder, not a real child |
 | Minutes to sleep | **Sample** | written to exercise the tuner, never measured |
 | Night dates | **Sequence** | one recording session |
-| Narration | Device voice | Web Speech on the site; ElevenLabs path present, not run |
+| Narration and word timing | Real | Kokoro-82M `af_heart`, rendered offline, word clock from its token timestamps; ElevenLabs path present, not run |
 
 ## Architecture
 
@@ -137,6 +137,10 @@ python3 -m nightjar.cli asleep 14                     # she was out in 14 minute
 python3 -m nightjar.cli tune
 python3 -m nightjar.cli book
 
+# optional: offline narration with a word clock (own venv, it pins a different huggingface-hub)
+python3 -m venv .venv-tts && .venv-tts/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu && .venv-tts/bin/pip install kokoro==0.9.4 soundfile==0.13.1
+.venv-tts/bin/python scripts/render_audio.py
+
 # optional: the real TabPFN backend (Built with PriorLabs-TabPFN)
 python3 -m venv .venv && .venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu && .venv/bin/pip install "tabpfn==2.2.1"
 .venv/bin/python -m nightjar.cli tune
@@ -149,8 +153,8 @@ Site: `cd web && npm ci && npm run dev`. Re-record the series with `scripts/reco
 Model output and hand edited files are untrusted. The full threat model is in [SECURITY.md](SECURITY.md). One gate runs everything and CI runs the same script:
 
 ```bash
-./verify.sh   # ruff lint and format, 44 python tests (unit and adversarial), stdlib-only check,
-              # no em dashes, SPDX headers, tsc strict, 12 web tests (parity with Python, tamper),
+./verify.sh   # ruff lint and format, 50 python tests (unit and adversarial), stdlib-only check,
+              # no em dashes, SPDX headers, tsc strict, 14 web tests (parity with Python, tamper),
               # vite build with CSP gate, npm audit 0, end to end CLI against a fake model
 ```
 

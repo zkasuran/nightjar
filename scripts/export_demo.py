@@ -23,6 +23,7 @@ import hashlib
 import json
 import math
 import re
+import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -35,6 +36,56 @@ from nightjar.features import FEATURE_COLUMNS, TARGET_COLUMN, extract  # noqa: E
 
 DEMO = ROOT / "demo"
 OUT = ROOT / "web" / "public" / "demo"
+
+
+def audio_for(stem: str, text: str) -> dict | None:
+    """Encode the Kokoro narration (scripts/render_audio.py) for the web and
+    carry its word clock. Loudness normalised, mono MP3 for every browser."""
+    wav = DEMO / "out" / "audio" / f"{stem}.wav"
+    meta = DEMO / "out" / "audio" / f"{stem}.words.json"
+    if not wav.exists() or not meta.exists():
+        return None
+    m = json.loads(meta.read_text())
+    if len(m["words"]) != len(text.split()):
+        raise SystemExit(f"{stem}: word clock has {len(m['words'])} words, text has {len(text.split())}")
+    dst = OUT / "audio" / f"{stem}.mp3"
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            str(wav),
+            "-af",
+            "loudnorm=I=-19:TP=-2:LRA=11",
+            "-ar",
+            "24000",
+            "-ac",
+            "1",
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            "56k",
+            "-map_metadata",
+            "-1",
+            "-write_xing",
+            "0",
+            str(dst),
+        ],
+        check=True,
+    )
+    return {
+        "src": f"audio/{stem}.mp3",
+        "sha256": hashlib.sha256(dst.read_bytes()).hexdigest(),
+        "voice": m["voice"],
+        "duration": m["duration"],
+        "speech_wpm": m["speech_wpm"],
+        "overall_wpm": m["overall_wpm"],
+        "words": m["words"],
+    }
 
 
 def stories() -> dict:
@@ -55,6 +106,7 @@ def stories() -> dict:
                 "gen_ms": d["gen_ms"],
                 "eval_tokens": d["eval_tokens"],
                 "features": feats.as_row(),
+                "audio": audio_for(path.stem, d["text"]),
             }
         )
     # Requests come from the series log, in order; failed nights are kept too.

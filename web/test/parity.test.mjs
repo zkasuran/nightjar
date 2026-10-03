@@ -52,3 +52,13 @@ test("tuner: fewer than two rows gives no recommendation instead of nonsense", (
   const p = knn(log.rows.slice(0, 2), [candidates(log.rows, 2)[0].f]);
   assert.ok(Number.isFinite(p[0]));
 });
+
+test("narration: every chapter has a word clock that matches its words", () => {
+  const stories = load("stories.json");
+  for (const c of stories.chapters) {
+    assert.ok(c.audio, c.title);
+    assert.equal(c.audio.words.length, (c.text.match(/\S+/g) ?? []).length, c.title);
+    for (let i = 1; i < c.audio.words.length; i++) assert.ok(c.audio.words[i][0] >= c.audio.words[i - 1][0], `${c.title} word ${i}`);
+    assert.ok(c.audio.words.at(-1)[1] <= c.audio.duration + 0.5);
+  }
+});
