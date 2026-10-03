@@ -182,7 +182,7 @@ function Body({ d }: { d: Demo }) {
 
   return (
     <section className="hero ask" style={{ minHeight: "calc(100vh - var(--hdr))" }}>
-      <Sky stars={90} />
+      <Sky stars={90} moon={false} />
       <div className="wrap ask-wrap">
         <AnimatePresence mode="wait">
           {phase.k === "pick" && (
