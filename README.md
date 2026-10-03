@@ -105,7 +105,7 @@ sequenceDiagram
 | Child profile "Mira" | **Sample** | placeholder, not a real child |
 | Minutes to sleep | **Sample** | written to exercise the tuner, never measured |
 | Night dates | **Sequence** | one recording session |
-| Lullaby under the voice | Real | Composed live in the browser with Web Audio, seeded per chapter so every story gets its own tune; about 17 dB under the narration |
+| Lullaby under the voice | Real | Composed live in the browser with Web Audio, seeded per chapter so every story gets its own tune; about 10 dB under the narration |
 | Narration and word timing | Real | Kokoro-82M `af_heart`, rendered offline, word clock from its token timestamps; ElevenLabs path present, not run |
 
 ## Architecture

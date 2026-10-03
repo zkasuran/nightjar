@@ -7,7 +7,7 @@
 // line, a low root note, all through a gentle generated reverb. It sits far
 // under the voice and fades away when the story ends.
 
-export const MUSIC_LEVEL = 0.3; // about 15 dB under the narration, like a film score under dialogue
+export const MUSIC_LEVEL = 0.75; // about 9 dB under the narration: clearly there, never over the words
 
 function rng(seed: number) {
   let s = seed >>> 0 || 1;

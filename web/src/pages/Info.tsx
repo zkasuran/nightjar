@@ -260,7 +260,7 @@ export const Reports = withDemo((d) => {
                 ["Child profile", <Sample>Sample</Sample>, "A placeholder child, not a real person"],
                 ["Minutes to sleep", <Sample>Sample</Sample>, "Representative rows, never measured"],
                 ["Night dates", <Sample>Sequence</Sample>, "One recording session, numbered as nights"],
-                ["Lullaby under the voice", <Real>Real</Real>, "Composed in your browser with Web Audio, a new tune seeded by each chapter, about 17 dB under the voice"],
+                ["Lullaby under the voice", <Real>Real</Real>, "Composed in your browser with Web Audio, a new tune seeded by each chapter, about 10 dB under the voice"],
                 ["Narration and word timing", <Real>Real</Real>, "Kokoro-82M (af_heart) offline on the laptop, word clock from its token timestamps. ElevenLabs path exists but was not run"],
               ]}
             />
