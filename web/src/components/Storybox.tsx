@@ -2,6 +2,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { loadAudio, type Chapter } from "../lib/data";
+import { Lullaby, seedOf } from "../lib/lullaby";
 
 interface Token { text: string; isWord: boolean; w: number }
 
@@ -43,6 +44,23 @@ function voicePref(): boolean {
     return false;
   }
 }
+/** Music plays under the voice unless it was turned off in this tab. */
+const MUSIC_KEY = "nightjar-music";
+function musicPref(): boolean {
+  try {
+    return sessionStorage.getItem(MUSIC_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+function setMusicPref(on: boolean) {
+  try {
+    sessionStorage.setItem(MUSIC_KEY, on ? "1" : "0");
+  } catch {
+    /* lasts for this box only */
+  }
+}
+
 function setVoicePref(on: boolean) {
   try {
     sessionStorage.setItem(VOICE_KEY, on ? "1" : "0");
@@ -73,6 +91,8 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
   const [playing, setPlaying] = useState(autoplay);
   const [voice, setVoice] = useState<VoiceState>(() => (voicePref() ? "loading" : "off"));
   const [attempt, setAttempt] = useState(0);
+  const [music, setMusic] = useState(musicPref);
+  const lullaby = useRef<Lullaby | null>(null);
   const [pos, setPos] = useState(-1);
   // One chapter, then the end. Nothing plays on by itself: this is bedtime.
   const [ended, setEnded] = useState(false);
@@ -177,6 +197,32 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [playing, voiceOn, voice, duration, paint]);
+
+  // The lullaby: plays under the voice, pauses with it, fades slowly at the end.
+  useEffect(() => {
+    const want = playing && voiceOn && music;
+    if (want) {
+      if (!lullaby.current) lullaby.current = new Lullaby(seedOf(`${chapter.night} ${chapter.title}`));
+      lullaby.current.play().catch(() => undefined);
+    } else lullaby.current?.pause(ended ? 6 : 0.5);
+  }, [playing, voiceOn, music, ended, chapter.night, chapter.title]);
+  useEffect(() => {
+    // New chapter, new tune.
+    return () => {
+      lullaby.current?.close();
+      lullaby.current = null;
+    };
+  }, [chapter]);
+  useEffect(() => {
+    // Exposed for the browser test: is music sounding, and how loud.
+    const id = setInterval(() => {
+      const el = boxRef.current;
+      if (!el) return;
+      el.dataset.music = lullaby.current ? lullaby.current.state : "none";
+      el.dataset.musicLevel = lullaby.current ? lullaby.current.level().toFixed(4) : "0";
+    }, 250);
+    return () => clearInterval(id);
+  }, []);
 
   // Keep the current word in view inside the reader only (never scroll the page).
   useEffect(() => {
@@ -292,6 +338,11 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
           <i ref={fill} />
         </div>
         <span className="t-xs num" style={{ minWidth: 44, textAlign: "right" }}>{left}s</span>
+        {audioMeta && voice === "on" && (
+          <button className={`chip ${music ? "acc" : ""}`} style={{ cursor: "pointer" }} onClick={() => { setMusicPref(!music); setMusic(!music); }} aria-pressed={music} title="A soft lullaby made in your browser, new for every story">
+            {music ? "Music on" : "Music off"}
+          </button>
+        )}
         {audioMeta && (
           <button className={`chip ${voice === "on" || voice === "loading" ? "acc" : voice === "error" || voice === "blocked" ? "bad" : ""}`} style={{ cursor: "pointer" }} onClick={toggleVoice} aria-pressed={voice === "on"} title={`Narration: ${audioMeta.voice}, rendered offline`}>
             {voiceLabel}

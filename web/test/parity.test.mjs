@@ -68,3 +68,17 @@ test("request screening: the TypeScript port softens exactly what Python does", 
   assert.ok(guard.requests.some((r) => r.expect.length > 0) && guard.requests.some((r) => r.expect.length === 0));
   for (const r of guard.requests) assert.deepEqual(screenRequest(guard, r.request, r.avoid), r.expect, r.request);
 });
+
+test("lullaby: each chapter gets its own tune, the same one every time", async () => {
+  const { compose, seedOf } = await import("../src/lib/lullaby.ts");
+  const stories = load("stories.json");
+  const tunes = stories.chapters.map((c) => JSON.stringify(compose(seedOf(`${c.night} ${c.title}`))));
+  assert.equal(new Set(tunes).size, tunes.length, "two chapters share a tune");
+  assert.equal(JSON.stringify(compose(seedOf("x"))), JSON.stringify(compose(seedOf("x"))));
+  for (const t of tunes.map((x) => JSON.parse(x))) {
+    assert.ok(t.bpm >= 58 && t.bpm <= 67, "lullaby tempo");
+    assert.equal(t.melody.length, 16);
+    assert.ok(t.melody.every((m) => m === null || (m >= 0 && m <= 9)));
+    assert.ok(t.melody.filter((m) => m !== null).length >= 4, "melody too sparse");
+  }
+});

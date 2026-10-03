@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img alt="tests" src="https://img.shields.io/badge/tests-50%20python%20%2B%2014%20web-2ea44f">
+  <img alt="tests" src="https://img.shields.io/badge/tests-59%20python%20%2B%2016%20web-2ea44f">
   <img alt="npm audit" src="https://img.shields.io/badge/npm%20audit-0-2ea44f">
   <img alt="core deps" src="https://img.shields.io/badge/python%20core%20deps-0-2ea44f">
   <img alt="model" src="https://img.shields.io/badge/model-Gemma%203%2C%20local-f4c46a">
@@ -35,7 +35,7 @@ Why now: a 1B Gemma writes a usable chapter on a CPU laptop in under a minute. T
 | Step | Click | You will see |
 |---|---|---|
 | 1 | [Ask for a story](https://nightjar-bedtime.vercel.app/#/ask), tap a picture | The story is written for that topic in your browser and screened. Slow without WebGPU; the laptop box below takes about 3 minutes and reads it aloud |
-| 2 | [Home](https://nightjar-bedtime.vercel.app), then Voice off to turn it on | A recorded chapter read aloud by an offline voice, each word lit as it is spoken. Pause, resume or click any word to jump |
+| 2 | [Home](https://nightjar-bedtime.vercel.app), then Voice off to turn it on | A recorded chapter read aloud by an offline voice over a soft lullaby, each word lit as it is spoken. Pause, resume or click any word to jump |
 | 3 | [Tuner](https://nightjar-bedtime.vercel.app/#/tuner), then change a minutes value | All 72 settings rescored in your browser and tomorrow's pick moving |
 | 4 | [Guardrail](https://nightjar-bedtime.vercel.app/#/guard), load "zero width bypass" | A hidden character spelling of "monster" refused, with "Python agrees" |
 | 5 | [Story](https://nightjar-bedtime.vercel.app/#/story), night 3 | A chapter that passed on the night and that a later rule now refuses |
@@ -105,6 +105,7 @@ sequenceDiagram
 | Child profile "Mira" | **Sample** | placeholder, not a real child |
 | Minutes to sleep | **Sample** | written to exercise the tuner, never measured |
 | Night dates | **Sequence** | one recording session |
+| Lullaby under the voice | Real | Composed live in the browser with Web Audio, seeded per chapter so every story gets its own tune; about 17 dB under the narration |
 | Narration and word timing | Real | Kokoro-82M `af_heart`, rendered offline, word clock from its token timestamps; ElevenLabs path present, not run |
 
 ## Architecture
@@ -155,8 +156,8 @@ Site: `cd web && npm ci && npm run dev`. Re-record the series with `scripts/reco
 Model output and hand edited files are untrusted. The full threat model is in [SECURITY.md](SECURITY.md). One gate runs everything and CI runs the same script:
 
 ```bash
-./verify.sh   # ruff lint and format, 50 python tests (unit and adversarial), stdlib-only check,
-              # no em dashes, SPDX headers, tsc strict, 14 web tests (parity with Python, tamper),
+./verify.sh   # ruff lint and format, 59 python tests (unit and adversarial), stdlib-only check,
+              # no em dashes, SPDX headers, tsc strict, 16 web tests (parity with Python, tamper),
               # vite build with CSP gate, npm audit 0, end to end CLI against a fake model
 ```
 
