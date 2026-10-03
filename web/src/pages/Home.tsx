@@ -77,7 +77,6 @@ function Loop() {
 function Body({ d }: { d: Demo }) {
   const s = stats(d);
   const reduce = useReducedMotion();
-  const [k, setK] = useState(0);
   const ch = d.stories.chapters.filter((c) => passesNow(d, c).ok);
   const refused = d.stories.nights.find((n) => n.exit !== 0);
   const pick = d.tuner.grid.reduce((a, b) => ((b.tabpfn ?? b.knn) < (a.tabpfn ?? a.knn) ? b : a));
@@ -96,8 +95,8 @@ function Body({ d }: { d: Demo }) {
               A new chapter every night, written by an open model on your own laptop. A hard guardrail reads every word first. Then it learns which stories get her to sleep faster.
             </motion.p>
             <motion.div className="row" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
-              <a className="btn primary" href="#/story">Hear a real chapter</a>
-              <a className="btn" href="#/tuner">Run the tuner</a>
+              <a className="btn primary" href="#/ask">Ask for a story</a>
+              <a className="btn" href="#/story">Hear a recorded chapter</a>
             </motion.div>
             <motion.div className="facts" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
               <span className="chip acc">Gemma 3, local</span>
@@ -107,7 +106,7 @@ function Body({ d }: { d: Demo }) {
             </motion.div>
           </div>
           <motion.div initial={{ opacity: 0, y: 24, rotate: 1.5 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }} className={reduce ? undefined : "breathe"}>
-            <Storybox chapter={ch[k]} autoplay={!reduce} label={`Night ${k + 1} · recorded with ${d.stories.model}`} onEnd={() => setTimeout(() => setK((x) => (x + 1) % ch.length), 1600)} />
+            <Storybox chapter={ch[0]} autoplay={!reduce} childName={d.stories.child.name} label={`Night 1 · recorded with ${d.stories.model}`} endActions={<a className="btn sm primary" href="#/ask">Ask for a new one</a>} />
           </motion.div>
         </div>
       </section>

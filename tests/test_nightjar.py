@@ -40,6 +40,39 @@ class TestGuard(unittest.TestCase):
         text = "Here is a story about a turtle. " * 30
         self.assertFalse(guard.check(text).ok)
 
+    def test_request_screening_softens_not_refuses(self):
+        self.assertEqual(guard.screen_request("a dragon that breathes fire", ["thunder"]), ["fire"])
+        self.assertEqual(guard.screen_request("Thunder and a MONSTER", ["thunder"]), ["monster", "thunder"])
+        self.assertEqual(guard.screen_request("the slow turtle", ["thunder"]), [])
+        self.assertEqual(guard.screen_request(None), [])  # type: ignore[arg-type]
+
+    def test_prompt_asks_to_soften_scary_request(self):
+        from nightjar.bible import Bible
+        from nightjar.config import Child
+        from nightjar.story import Knobs, _build_prompt
+
+        child = Child(name="Mira", age=4, reading_grade=1.0, avoid=["thunder"])
+        prompt = _build_prompt(child, Knobs(), Bible([], []), "a monster in the thunder")
+        self.assertIn("make it friendly", prompt)
+        self.assertIn("monster, thunder", prompt)
+        self.assertNotIn("make it friendly", _build_prompt(child, Knobs(), Bible([], []), "the slow turtle"))
+
+    def test_request_leads_and_history_shrinks(self):
+        from nightjar.bible import Bible, Chapter
+        from nightjar.config import Child
+        from nightjar.story import Knobs, _build_prompt
+
+        b = Bible(
+            [],
+            [Chapter("2026-10-01", "Old", "Pim walked far", ["Pim"], "a leaf"), Chapter("2026-10-02", "Older", "Pim slept", ["Pim"], "")],
+        )
+        child = Child(name="Mira", age=4, reading_grade=1.0)
+        with_req = _build_prompt(child, Knobs(cast=[]), b, "a sleepy train")
+        self.assertIn("The story is about: a sleepy train", with_req)
+        self.assertIn("Last night: Pim slept", with_req)
+        self.assertNotIn("WHAT HAPPENED ON EARLIER NIGHTS", with_req)
+        self.assertIn("WHAT HAPPENED ON EARLIER NIGHTS", _build_prompt(child, Knobs(cast=["Pim"]), b, ""))
+
     def test_blocks_prompt_field_read_aloud(self):
         # Regression from the recorded series (night 8 passed at record time).
         text = "Pim gently touches it. It feels smooth as silk. " * 10 + "Open thread:  Maybe tomorrow the moon will show Pim a rainbow."

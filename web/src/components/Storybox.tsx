@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LicenseRef-zkasuran-SAND-1.0
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { loadAudio, type Chapter } from "../lib/data";
 
 interface Token { text: string; isWord: boolean; w: number }
@@ -58,7 +58,7 @@ function setVoicePref(on: boolean) {
  * voice on mid-chapter all read and write that one number, so the words can
  * never drift from the sound.
  */
-export function Storybox({ chapter, autoplay = false, label, onEnd, passes = true }: { chapter: Chapter; autoplay?: boolean; label?: string; onEnd?: () => void; passes?: boolean }) {
+export function Storybox({ chapter, autoplay = false, label, onEnd, passes = true, childName, endActions }: { chapter: Chapter; autoplay?: boolean; label?: string; onEnd?: () => void; passes?: boolean; childName?: string; endActions?: ReactNode }) {
   const tokens = useMemo(() => tokenise(chapter.text), [chapter.text]);
   const nWords = useMemo(() => tokens.filter((t) => t.isWord).length, [tokens]);
   const audioMeta = chapter.audio && chapter.audio.words.length === nWords ? chapter.audio : null;
@@ -74,6 +74,8 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
   const [voice, setVoice] = useState<VoiceState>(() => (voicePref() ? "loading" : "off"));
   const [attempt, setAttempt] = useState(0);
   const [pos, setPos] = useState(-1);
+  // One chapter, then the end. Nothing plays on by itself: this is bedtime.
+  const [ended, setEnded] = useState(false);
   const [left, setLeft] = useState(Math.round(duration));
   const t = useRef(0);
   const audio = useRef<HTMLAudioElement | null>(null);
@@ -103,6 +105,7 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
     audio.current?.pause();
     t.current = 0;
     setPos(-1);
+    setEnded(false);
     setPlaying(autoplay);
     paint();
   }, [chapter, autoplay, paint]);
@@ -164,6 +167,7 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
         t.current = duration;
         paint();
         setPlaying(false);
+        setEnded(true);
         onEndRef.current?.();
         return;
       }
@@ -182,6 +186,7 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
   }, [pos]);
 
   const seek = (to: number) => {
+    setEnded(false);
     t.current = Math.max(0, Math.min(duration - 0.01, to));
     if (audio.current) audio.current.currentTime = t.current;
     paint();
@@ -236,6 +241,21 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
           <motion.div key={chapter.title} className="box-title" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
             {chapter.title}
           </motion.div>
+        </AnimatePresence>
+        <AnimatePresence>
+          {ended && (
+            <motion.div className="the-end" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.6 }} role="status">
+              <motion.svg width="64" height="64" viewBox="0 0 64 64" aria-hidden initial={{ scale: 0.6, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 80, damping: 12 }}>
+                <path d="M44 10a24 24 0 1 0 10 34A20 20 0 0 1 44 10z" fill="var(--acc)" />
+              </motion.svg>
+              <p className="the-end-title">The end.</p>
+              <p className="t-s">Goodnight{childName ? `, ${childName}` : ""}. Sleep tight.</p>
+              <div className="row" style={{ justifyContent: "center" }}>
+                <button className="btn sm" onClick={() => { seek(0); setPlaying(true); }}>Read it again</button>
+                {endActions}
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
         <div className="reader" ref={readerRef} aria-live="off">
           {tokens.map((tk, i) =>

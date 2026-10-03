@@ -198,3 +198,24 @@ def redact(text: str) -> str:
     for banned in BANNED:
         out = re.sub(rf"\b{re.escape(banned)}\b", "[blocked]", out)
     return out
+
+
+def screen_request(request: str, avoid: list[str] | None = None) -> list[str]:
+    """Words in a child's request that the story must soften, not refuse.
+
+    Children ask for dragons and monsters. Refusing teaches them nothing and
+    the guardrail on the output already holds the line, so the request goes
+    through with an instruction to make the scary thing friendly.
+    """
+    if not isinstance(request, str):
+        return []
+    lowered = normalise(request[: MAX_TERM_CHARS * 8])
+    words = set(WORD_RE.findall(lowered))
+    found = sorted(BANNED & words)
+    found += [p for p in BANNED_PHRASES if p in lowered]
+    for term in (avoid or [])[:MAX_AVOID_TERMS]:
+        if isinstance(term, str):
+            t = normalise(term).strip()[:MAX_TERM_CHARS]
+            if t and t in lowered and t not in found:
+                found.append(t)
+    return found

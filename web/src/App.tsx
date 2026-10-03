@@ -4,6 +4,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Footer, Header } from "./components/Nav";
 import { useRoute, useSectionScroll } from "./lib/router";
 import { DemoProvider } from "./lib/useDemo";
+import { Ask } from "./pages/Ask";
 import { Book } from "./pages/Book";
 import { Guard } from "./pages/Guard";
 import { Home } from "./pages/Home";
@@ -14,6 +15,7 @@ import { Tuner } from "./pages/Tuner";
 
 const TITLES: Record<string, string> = {
   "": "Bedtime stories that learn what puts her to sleep",
+  ask: "Ask for a story",
   story: "Tonight's chapter",
   tuner: "The tuner",
   guard: "Break the guardrail",
@@ -28,6 +30,7 @@ const TITLES: Record<string, string> = {
 function view(page: string) {
   switch (page) {
     case "": return <Home />;
+    case "ask": return <Ask />;
     case "story": return <Story />;
     case "tuner": return <Tuner />;
     case "guard": return <Guard />;

@@ -121,3 +121,18 @@ export function hits(rules: Rules, text: string, avoid: string[] = []): Array<[n
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+/** Port of guard.screen_request: words in a child's request to soften, not refuse. */
+export function screenRequest(rules: Rules, request: unknown, avoid: string[] = []): string[] {
+  if (typeof request !== "string") return [];
+  const lowered = normalise([...request].slice(0, MAX_TERM_CHARS * 8).join(""));
+  const words = new Set(lowered.match(WORD_RE) ?? []);
+  const found = [...rules.banned].sort().filter((w) => words.has(w));
+  for (const p of rules.banned_phrases) if (lowered.includes(p)) found.push(p);
+  for (const term of avoid.slice(0, MAX_AVOID_TERMS)) {
+    if (typeof term !== "string") continue;
+    const t = [...pyStrip(normalise(term))].slice(0, MAX_TERM_CHARS).join("");
+    if (t && lowered.includes(t) && !found.includes(t)) found.push(t);
+  }
+  return found;
+}

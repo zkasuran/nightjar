@@ -59,7 +59,7 @@ def cmd_tonight(args) -> int:
         knobs.pace_wpm = args.pace
     if args.cast:
         knobs.cast = [c.strip() for c in args.cast.split(",") if c.strip()]
-    elif bible.cast_names():
+    elif bible.cast_names() and not args.request:
         knobs.cast = bible.cast_names()[:2]
 
     print(f"[tuner] {rec.explain()}")
@@ -159,6 +159,16 @@ def cmd_bible(_args) -> int:
     return 0
 
 
+def cmd_serve(args) -> int:
+    from . import serve
+
+    if not 1024 <= args.port <= 65535:
+        print("port must be 1024 to 65535")
+        return 1
+    serve.serve(args.port)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="nightjar", description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -190,6 +200,10 @@ def main(argv: list[str] | None = None) -> int:
     p_book.set_defaults(fn=cmd_book)
 
     sub.add_parser("bible", help="show the series bible").set_defaults(fn=cmd_bible)
+
+    p_serve = sub.add_parser("serve", help="the box: a local page where she asks for tonight's story")
+    p_serve.add_argument("--port", type=int, default=8765)
+    p_serve.set_defaults(fn=cmd_serve)
 
     args = parser.parse_args(argv)
     try:

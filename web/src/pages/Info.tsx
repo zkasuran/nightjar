@@ -292,7 +292,7 @@ export function Developers() {
       </PageHead>
       <section className="sec" id="cli">
         <div className="wrap split">
-          <SectionHead eyebrow="Command line" title="Six commands" />
+          <SectionHead eyebrow="Command line" title="Seven commands" />
           <Reveal className="stack">
             <Table
               head={["Command", "Does"]}
@@ -303,6 +303,7 @@ export function Developers() {
                 [<code className="mono">tune</code>, "Prints tomorrow's pick and which backend made it"],
                 [<code className="mono">book</code>, "Compiles the week into A5 HTML, plus PDF if available"],
                 [<code className="mono">bible</code>, "Shows characters, recent chapters and loose threads"],
+                [<code className="mono">serve</code>, "The box: a local page where she taps a picture or types her idea, then hears it read aloud"],
               ]}
             />
             <Code>{`python3 -m venv .venv && .venv/bin/pip install "tabpfn==2.2.1"

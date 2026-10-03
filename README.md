@@ -34,11 +34,12 @@ Why now: a 1B Gemma writes a usable chapter on a CPU laptop in under a minute. T
 
 | Step | Click | You will see |
 |---|---|---|
-| 1 | [Home](https://nightjar-bedtime.vercel.app), then Voice off to turn it on | A recorded chapter read aloud by an offline voice, each word lit as it is spoken. Pause, resume or click any word to jump |
-| 2 | [Tuner](https://nightjar-bedtime.vercel.app/#/tuner), then change a minutes value | All 72 settings rescored in your browser and tomorrow's pick moving |
-| 3 | [Guardrail](https://nightjar-bedtime.vercel.app/#/guard), load "zero width bypass" | A hidden character spelling of "monster" refused, with "Python agrees" |
-| 4 | [Story](https://nightjar-bedtime.vercel.app/#/story), night 3 | A chapter that passed on the night and that a later rule now refuses |
-| 5 | [Lab](https://nightjar-bedtime.vercel.app/#/lab), download Gemma 3 270M | A new chapter written inside your tab, then screened by the guardrail |
+| 1 | [Ask for a story](https://nightjar-bedtime.vercel.app/#/ask), tap a picture | The story is written for that topic in your browser and screened. Slow without WebGPU; the laptop box below takes about 3 minutes and reads it aloud |
+| 2 | [Home](https://nightjar-bedtime.vercel.app), then Voice off to turn it on | A recorded chapter read aloud by an offline voice, each word lit as it is spoken. Pause, resume or click any word to jump |
+| 3 | [Tuner](https://nightjar-bedtime.vercel.app/#/tuner), then change a minutes value | All 72 settings rescored in your browser and tomorrow's pick moving |
+| 4 | [Guardrail](https://nightjar-bedtime.vercel.app/#/guard), load "zero width bypass" | A hidden character spelling of "monster" refused, with "Python agrees" |
+| 5 | [Story](https://nightjar-bedtime.vercel.app/#/story), night 3 | A chapter that passed on the night and that a later rule now refuses |
+| 6 | [Lab](https://nightjar-bedtime.vercel.app/#/lab), download Gemma 3 270M | A new chapter written inside your tab, then screened by the guardrail |
 
 ## How it works
 
@@ -137,13 +138,14 @@ python3 -m nightjar.cli asleep 14                     # she was out in 14 minute
 python3 -m nightjar.cli tune
 python3 -m nightjar.cli book
 
-# optional: offline narration with a word clock (own venv, it pins a different huggingface-hub)
-python3 -m venv .venv-tts && .venv-tts/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu && .venv-tts/bin/pip install kokoro==0.9.4 soundfile==0.13.1
-.venv-tts/bin/python scripts/render_audio.py
+# the box: a page on the laptop where she taps a picture or types her idea
+# (needs the site built once: cd web && npm ci && npm run build)
+python3 -m nightjar.cli serve      # http://127.0.0.1:8765/#/ask, local only
 
-# optional: the real TabPFN backend (Built with PriorLabs-TabPFN)
-python3 -m venv .venv && .venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu && .venv/bin/pip install "tabpfn==2.2.1"
-.venv/bin/python -m nightjar.cli tune
+# optional extras in one venv: TabPFN tuner (Built with PriorLabs-TabPFN) and Kokoro narration
+python3 -m venv .venv-tts && .venv-tts/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu
+.venv-tts/bin/pip install "tabpfn==2.2.1" "kokoro==0.9.4" "soundfile==0.13.1" "transformers<5"
+.venv-tts/bin/python -m nightjar.cli serve
 ```
 
 Site: `cd web && npm ci && npm run dev`. Re-record the series with `scripts/record_series.sh` and re-export with `.venv/bin/python scripts/export_demo.py`.

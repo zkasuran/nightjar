@@ -151,7 +151,7 @@ function validate(d: Demo): Demo {
   return d;
 }
 
-const AUDIO_MAX = 4_000_000;
+const AUDIO_MAX = 12_000_000;
 
 /** Fetch a narration, check its sha256 from the verified fixture, hand back a
  *  blob: URL. Fully buffered, so pause and resume never wait on the network. */
@@ -159,12 +159,13 @@ export async function loadAudio(n: Narration, base = "/demo/"): Promise<string> 
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 20_000);
   try {
-    const res = await fetch(base + n.src, { signal: ctl.signal });
+    // Recorded chapters live under /demo/; live chapters come from the laptop box at /api/.
+    const res = await fetch((n.src.startsWith("api/") ? "/" : base) + n.src, { signal: ctl.signal });
     if (!res.ok) throw new DemoError(`${n.src}: HTTP ${res.status}`);
     const buf = await res.arrayBuffer();
     if (buf.byteLength > AUDIO_MAX) throw new DemoError(`${n.src}: over the size ceiling`);
     if ((await sha256(buf)) !== n.sha256) throw new DemoError(`${n.src} does not match its sha256`);
-    return URL.createObjectURL(new Blob([buf], { type: "audio/mpeg" }));
+    return URL.createObjectURL(new Blob([buf], { type: n.src.endsWith(".wav") ? "audio/wav" : "audio/mpeg" }));
   } finally {
     clearTimeout(timer);
   }

@@ -108,8 +108,16 @@ class Story:
 
 
 def _build_prompt(child: Child, knobs: Knobs, bible: Bible, request: str) -> str:
+    soften = guard.screen_request(request, child.avoid)
     query = f"{request} {' '.join(knobs.cast)}"
-    history = bible.context_block(query) if knobs.is_sequel else ""
+    if request:
+        # A 1B model follows whatever dominates the prompt. With a full series
+        # history it wrote about the turtle every time she asked for a dragon,
+        # so with a request only last night's one line summary goes in.
+        last = bible.chapters[-1] if bible.chapters else None
+        history = f"Last night: {last.summary}" if last and knobs.is_sequel else ""
+    else:
+        history = bible.context_block(query) if knobs.is_sequel else ""
     calm_hint = {
         1: "a little gentle adventure is fine",
         2: "keep it mostly quiet",
@@ -123,11 +131,23 @@ def _build_prompt(child: Child, knobs: Knobs, bible: Bible, request: str) -> str
         f"{child.name} loves: {', '.join(child.loves)}." if child.loves else "",
         f"{child.name} is the hero of the story and makes the decisions.",
         "",
-        f"What {child.name} asked for tonight: {request}" if request else "",
+        (
+            f"{child.name} asked for this tonight, and the story must be about it: {request}. "
+            "Characters from earlier nights may visit, but her idea comes first."
+        )
+        if request
+        else "",
+        (
+            f"Some of that could feel scary ({', '.join(soften)}). Keep the idea but make it friendly, small and gentle, "
+            "never frightening. Do not use those words."
+        )
+        if soften
+        else "",
         "",
         history,
         "",
         "RULES FOR TONIGHT:",
+        f"- The story is about: {request}." if request else "",
         f"- About {knobs.target_words} words. Not longer.",
         f"- Tone: {calm_hint}.",
         f"- Reading level: a {child.age}-year-old. Short sentences.",
@@ -232,6 +252,7 @@ def tonight(
     bible: Bible,
     request: str = "",
     log_night: str | None = None,
+    on_attempt=None,
 ) -> Story:
     """Generate and guard tonight's chapter. Raises if every attempt is unsafe."""
     night = log_night or date.today().isoformat()
@@ -241,6 +262,8 @@ def tonight(
     total_ms = 0
 
     for attempt in range(1, SETTINGS.guard_retries + 1):
+        if on_attempt:
+            on_attempt(attempt, rejected[-1] if rejected else [])
         extra = ""
         if rejected:
             extra = (

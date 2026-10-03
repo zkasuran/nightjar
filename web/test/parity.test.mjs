@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { check } from "../src/lib/guard.ts";
+import { check, screenRequest } from "../src/lib/guard.ts";
 import { candidates, knn, recommend } from "../src/lib/tuner.ts";
 
 const load = (n) => JSON.parse(readFileSync(new URL(`../public/demo/${n}`, import.meta.url)));
@@ -61,4 +61,10 @@ test("narration: every chapter has a word clock that matches its words", () => {
     for (let i = 1; i < c.audio.words.length; i++) assert.ok(c.audio.words[i][0] >= c.audio.words[i - 1][0], `${c.title} word ${i}`);
     assert.ok(c.audio.words.at(-1)[1] <= c.audio.duration + 0.5);
   }
+});
+
+test("request screening: the TypeScript port softens exactly what Python does", () => {
+  assert.ok(guard.requests.length >= 6);
+  assert.ok(guard.requests.some((r) => r.expect.length > 0) && guard.requests.some((r) => r.expect.length === 0));
+  for (const r of guard.requests) assert.deepEqual(screenRequest(guard, r.request, r.avoid), r.expect, r.request);
 });

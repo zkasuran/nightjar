@@ -275,7 +275,22 @@ def guard_corpus(story_data: dict) -> dict:
     for c in cases:
         v = guard.check(c["text"], avoid=c["avoid"], also_screen=c["title"])
         c["expect"] = {"ok": v.ok, "violations": v.violations}
+    requests = [
+        "a dragon that breathes fire",
+        "a thunderstorm and a monster in the basement",
+        "the slow turtle",
+        "a GHOST who is lonely",
+        "mon\u200bster party",
+        "Pim never came back",
+        "snow and red boots",
+        "",
+    ]
+    req_cases = [
+        {"request": r, "avoid": story_data["child"]["avoid"], "expect": guard.screen_request(r, story_data["child"]["avoid"])}
+        for r in requests
+    ]
     return {
+        "requests": req_cases,
         "banned": sorted(guard.BANNED),
         "banned_phrases": list(guard.BANNED_PHRASES),
         "meta": list(guard.META),

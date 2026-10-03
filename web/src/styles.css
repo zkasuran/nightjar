@@ -214,7 +214,7 @@ label.field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color:
 .box { position: relative; background: var(--panel); border: 1px solid var(--edge); border-radius: 28px; box-shadow: var(--shadow); overflow: hidden; }
 .box-top { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--edge); background: var(--panel-2); }
 .box-led { width: 9px; height: 9px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 12px var(--acc); animation: glow 2.4s ease-in-out infinite; }
-.box-body { padding: 22px 24px; display: grid; gap: 14px; }
+.box-body { padding: 22px 24px; display: grid; gap: 14px; position: relative; }
 .box-title { font: 600 24px/1.2 var(--font-display); }
 .reader { font: 400 18px/1.75 var(--font-display); color: var(--ink-2); min-height: 220px; max-height: 300px; overflow: hidden; mask-image: linear-gradient(180deg, #000 78%, transparent); }
 .reader .w { transition: color 220ms var(--ease), opacity 220ms; opacity: 0.38; }
@@ -349,3 +349,23 @@ table.data input[type="number"] { width: 72px; padding: 4px 8px; text-align: rig
 /* The hero box floats, but holds still under the pointer or focus so its controls are easy to hit. */
 .breathe { animation: breathe 7s ease-in-out infinite; }
 .breathe:hover, .breathe:focus-within { animation-play-state: paused; }
+
+.the-end { position: absolute; inset: 0; z-index: 2; display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; padding: 24px; background: color-mix(in oklab, var(--panel) 90%, transparent); backdrop-filter: blur(3px); }
+.the-end-title { font: 600 30px/1.1 var(--font-display); color: var(--ink); }
+
+/* ---------- ask ---------- */
+.ask > .wrap.ask-wrap { display: block; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; max-width: 880px; margin: 0 auto; width: 100%; }
+.tile { display: grid; justify-items: center; gap: 8px; padding: 22px 12px; border-radius: 22px; border: 1px solid var(--edge); background: var(--panel); box-shadow: var(--shadow); cursor: pointer; font: 650 16px/1.2 var(--font-ui); color: var(--ink); }
+.tile:hover { border-color: var(--acc); }
+.tile:disabled { opacity: 0.55; cursor: wait; }
+.tile-emoji { font-size: 46px; line-height: 1; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.18)); }
+.ask-form { display: flex; gap: 10px; max-width: 640px; margin: 0 auto; width: 100%; }
+.ask-form input { height: 52px; font-size: 17px; border-radius: 999px; padding: 0 22px; }
+.ask-form .btn { height: 52px; flex: none; }
+.soft-note { text-align: center; color: var(--acc); font-weight: 600; font-size: 15px; max-width: 620px; margin: 0 auto; overflow: hidden; }
+.working { display: grid; justify-items: center; gap: 14px; text-align: center; padding-top: 48px; }
+.working .orb { filter: drop-shadow(0 0 30px var(--acc)); }
+.dots { display: flex; gap: 8px; }
+.dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--acc); }
+@media (max-width: 720px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ask-form { flex-direction: column; } .tile-emoji { font-size: 38px; } }

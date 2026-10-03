@@ -17,6 +17,8 @@ are untrusted once they leave the build.
 | Web attacker | Route parameter injection | Hash segments matched against `^[a-z0-9-]{0,32}$` before use | `web/src/lib/router.ts` | untested beyond the 404 route in the browser run |
 | The lab | Load an arbitrary model id | Worker only loads two allow listed repo ids | `web/src/workers/gemma.ts` | untested |
 | Network | Tampered narration MP3 | sha256 from the verified fixture checked before a blob: URL is made, 4 MB ceiling, 20 s timeout | `web/src/lib/data.ts` `loadAudio` | `web/test/adversarial.test.mjs` |
+| A web page elsewhere | Reach `nightjar serve` through DNS rebinding or CSRF | Binds 127.0.0.1 only, refuses any Host but 127.0.0.1 or localhost, POST must be same origin JSON under 4 KB, values typed and bounded, one story at a time, audio and job ids matched by regex, static paths resolved inside `web/dist` | `nightjar/serve.py` | `tests/test_serve.py` |
+| A child | Asks for something scary | Request screened, the scary words are softened in the prompt, not refused; the output guardrail still decides | `guard.screen_request`, `story._build_prompt` | `test_request_screening_softens_not_refuses`, parity test |
 | Secrets | ElevenLabs key in argv or logs | Read from `ELEVENLABS_API_KEY` env only, never printed | `nightjar/config.py`, `narrate.py` | untested |
 
 ## Known limits
