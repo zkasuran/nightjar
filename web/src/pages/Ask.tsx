@@ -6,7 +6,7 @@ import { Storybox, unlockSpeech } from "../components/Storybox";
 import { Failed, Loading } from "../components/ui";
 import { boxHealth, logAsleep, pollJob, startStory, type Health, type Stage } from "../lib/box";
 import type { Chapter, Demo } from "../lib/data";
-import { check, screenRequest } from "../lib/guard";
+import { check, gentleRequest } from "../lib/guard";
 import { useDemo } from "../lib/useDemo";
 import type { In, Out } from "../workers/gemma";
 
@@ -107,7 +107,8 @@ function Body({ d }: { d: Demo }) {
   const worker = useRef<Worker | null>(null);
   const name = health?.name || d.stories.child.name;
   const avoid = d.stories.child.avoid;
-  const soften = screenRequest(d.guard, req, avoid);
+  const softened = gentleRequest(d.guard, req, avoid);
+  const soften = softened.found;
 
   useEffect(() => {
     boxHealth().then((h) => {
@@ -152,7 +153,9 @@ function Body({ d }: { d: Demo }) {
     }
   };
 
-  const makeTab = (ask: string) => {
+  const makeTab = (asked: string) => {
+    // The model only ever sees the gentle version of what was asked.
+    const ask = gentleRequest(d.guard, asked, avoid).text || asked;
     worker.current?.terminate();
     const w = new Worker(new URL("../workers/gemma.ts", import.meta.url), { type: "module" });
     worker.current = w;
@@ -181,7 +184,7 @@ function Body({ d }: { d: Demo }) {
     const first = [
       `Tonight you are writing for ${name}, who is ${d.stories.child.age} years old.`,
       `${name} asked for this tonight, and the story must be about it: ${ask}.`,
-      soften.length ? `Some of that could feel scary (${soften.join(", ")}). Keep the idea but make it friendly, small and gentle. Do not use those words.` : "",
+      ask !== asked ? "Keep everything friendly, small and gentle. Nothing frightening at all." : "",
       parts > 1
         ? `This is part 1 of ${parts} of a longer story. Write about 120 words. Very quiet. Short sentences. Do not end the story yet; stop at a calm moment.`
         : "Write about 120 words. Very quiet; almost nothing happens. Short sentences. End with everyone safe and asleep.",
@@ -315,7 +318,7 @@ function Body({ d }: { d: Demo }) {
               <AnimatePresence>
                 {soften.length > 0 && (
                   <motion.p className="soft-note" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                    Nightjar keeps bedtime cozy. Anything scary, like "{soften.join('" or "')}", turns soft and friendly.
+                    Bedtime stays cosy, so tonight's story will be: <i>{softened.text}</i>
                   </motion.p>
                 )}
               </AnimatePresence>
@@ -346,7 +349,7 @@ function Body({ d }: { d: Demo }) {
                 </motion.p>
               )}
               <Storybox chapter={phase.chapter} autoplay={mode === "box"} childName={name} label={`Tonight · "${req}"`} endActions={sleepButtons || undefined} />
-              {phase.soften.length > 0 && <p className="soft-note">Anything scary was made gentle, and the guardrail read every word first.</p>}
+              {phase.soften.length > 0 && <p className="soft-note">The scary part became something friendly. The guardrail read every word first.</p>}
               {mode === "tab" && <p className="t-xs" style={{ textAlign: "center" }}>Written on this device in {(phase.chapter.gen_ms / 1000).toFixed(0)}s and passed the guardrail. Read aloud with this device's own voice; the laptop box uses a softer offline voice.</p>}
               <div className="row" style={{ justifyContent: "center" }}>
                 <button className="btn sm" onClick={() => { setAsleep(""); setPhase({ k: "pick" }); }}>Pick a different story</button>
@@ -358,11 +361,12 @@ function Body({ d }: { d: Demo }) {
             <motion.div key="fail" className="working" initial={{ opacity: 0 }} animate={{ opacity: 1 }} role="alert">
               <h2 className="h-l">{phase.k === "refused" ? "No new story tonight" : "The story could not be written"}</h2>
               <p className="lede" style={{ textAlign: "center" }}>
-                {phase.k === "refused" ? "Every draft failed the guardrail, so nothing new is read. Here is a story you already know." : phase.msg}
+                {phase.k === "refused" ? "Every draft came out too exciting for bedtime, so none of them is read aloud. Trying again usually works." : phase.msg}
               </p>
               <div className="row" style={{ justifyContent: "center" }}>
-                <a className="btn primary" href="#/story">Hear a recorded chapter</a>
-                <button className="btn" onClick={() => setPhase({ k: "pick" })}>Try another topic</button>
+                <button className="btn primary" onClick={() => go(req)}>Try again</button>
+                <button className="btn" onClick={() => setPhase({ k: "pick" })}>Pick another topic</button>
+                <a className="btn" href="#/story">Hear a recorded chapter</a>
               </div>
             </motion.div>
           )}

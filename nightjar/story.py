@@ -112,7 +112,7 @@ class Story:
 
 
 def _build_prompt(child: Child, knobs: Knobs, bible: Bible, request: str) -> str:
-    soften = guard.screen_request(request, child.avoid)
+    request, soften = guard.gentle_request(request, child.avoid) if request else ("", [])
     query = f"{request} {' '.join(knobs.cast)}"
     if request:
         # A 1B model follows whatever dominates the prompt. With a full series
@@ -141,12 +141,7 @@ def _build_prompt(child: Child, knobs: Knobs, bible: Bible, request: str) -> str
         )
         if request
         else "",
-        (
-            f"Some of that could feel scary ({', '.join(soften)}). Keep the idea but make it friendly, small and gentle, "
-            "never frightening. Do not use those words."
-        )
-        if soften
-        else "",
+        "Keep everything friendly, small and gentle. Nothing frightening at all." if soften else "",
         "",
         history,
         "",
@@ -328,11 +323,12 @@ def _write_part(
             on_attempt(attempt, rejected[-1] if rejected else [], label)
         extra = ""
         if rejected:
-            extra = (
-                "\n\nYour previous attempt was rejected by a safety filter for: "
-                + "; ".join(rejected[-1])
-                + ". Write a calmer version and avoid those words entirely."
-            )
+            # Never quote the rejected words back: the model repeats what it reads.
+            why = rejected[-1]
+            if any(v.startswith(("too short", "too long")) for v in why):
+                extra = "\n\nYour previous attempt was the wrong length. " + "; ".join(v for v in why if v.startswith("too")) + "."
+            else:
+                extra = "\n\nYour previous attempt was too exciting for a small child at bedtime. Write a calmer, softer version with only gentle words."
         completion = llm.generate(
             prompt + extra,
             system=system,
@@ -402,7 +398,8 @@ def tonight(
     summary, thread, cast = parsed["summary"], parsed["open_thread"], parsed["cast"]
     all_rejected, all_drafts = list(rejected), list(drafts)
     for part in range(2, parts + 1):
-        cp = _continue_prompt(child, knobs, request, "\n".join(texts), part, parts)
+        gentle = guard.gentle_request(request, child.avoid)[0] if request else ""
+        cp = _continue_prompt(child, knobs, gentle, "\n".join(texts), part, parts)
         pp, a2, r2, d2, ms2, t2 = _write_part(
             child,
             cp,

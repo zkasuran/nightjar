@@ -53,9 +53,49 @@ class TestGuard(unittest.TestCase):
 
         child = Child(name="Mira", age=4, reading_grade=1.0, avoid=["thunder"])
         prompt = _build_prompt(child, Knobs(), Bible([], []), "a monster in the thunder")
-        self.assertIn("make it friendly", prompt)
-        self.assertIn("monster, thunder", prompt)
-        self.assertNotIn("make it friendly", _build_prompt(child, Knobs(), Bible([], []), "the slow turtle"))
+        self.assertIn("Nothing frightening at all", prompt)
+        # The scary words never reach the model, not even as "do not say X".
+        self.assertNotIn("monster", prompt.lower())
+        self.assertNotIn("thunder", prompt.lower())
+        self.assertNotIn("Nothing frightening", _build_prompt(child, Knobs(), Bible([], []), "the slow turtle"))
+
+    def test_horror_request_becomes_a_gentle_story(self):
+        # Regression: "horror" failed every draft because the word was quoted
+        # back to the model in the prompt and in the retry feedback.
+        text, found = guard.gentle_request("horror", [])
+        self.assertEqual(found, ["horror"])
+        self.assertNotIn("horror", text)
+        self.assertIn("kind friend", text)
+        text, _ = guard.gentle_request("a scary ghost story with a monster", [])
+        self.assertTrue(guard.check(text * 12, min_words=0).ok, text)
+        self.assertIn("glowy friend", text)
+        self.assertEqual(guard.gentle_request("Pim and the Thunder", ["thunder"])[0], "pim and the something cosy")
+        self.assertEqual(guard.gentle_request("the slow turtle", []), ("the slow turtle", []))
+
+    def test_retry_feedback_never_quotes_the_banned_word(self):
+        import nightjar.story as st
+        from nightjar.bible import Bible
+        from nightjar.config import Child
+        from nightjar.llm import Completion
+
+        prompts = []
+        replies = iter(
+            ['{"title":"T","text":"' + "A monster waited. " * 30 + '"}', '{"title":"T","text":"' + "Pim walked slowly home. " * 20 + '"}']
+        )
+
+        def fake(prompt, **kw):
+            prompts.append(prompt)
+            return Completion(next(replies), 0, 0, 1)
+
+        orig = st.llm.generate
+        st.llm.generate = fake
+        try:
+            story = st.tonight(Child(name="Mira", age=4, reading_grade=1.0), st.Knobs(target_words=80), Bible([], []), request="horror")
+        finally:
+            st.llm.generate = orig
+        self.assertEqual(story.attempts, 2)
+        self.assertNotIn("monster", prompts[1].lower())
+        self.assertNotIn("horror", prompts[0].lower() + prompts[1].lower())
 
     def test_request_leads_and_history_shrinks(self):
         from nightjar.bible import Bible, Chapter

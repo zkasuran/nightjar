@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { check, screenRequest } from "../src/lib/guard.ts";
+import { check, gentleRequest, screenRequest } from "../src/lib/guard.ts";
 import { candidates, knn, recommend } from "../src/lib/tuner.ts";
 
 const load = (n) => JSON.parse(readFileSync(new URL(`../public/demo/${n}`, import.meta.url)));
@@ -66,7 +66,12 @@ test("narration: every chapter has a word clock that matches its words", () => {
 test("request screening: the TypeScript port softens exactly what Python does", () => {
   assert.ok(guard.requests.length >= 6);
   assert.ok(guard.requests.some((r) => r.expect.length > 0) && guard.requests.some((r) => r.expect.length === 0));
-  for (const r of guard.requests) assert.deepEqual(screenRequest(guard, r.request, r.avoid), r.expect, r.request);
+  for (const r of guard.requests) {
+    assert.deepEqual(screenRequest(guard, r.request, r.avoid), r.expect, r.request);
+    assert.equal(gentleRequest(guard, r.request, r.avoid).text, r.gentle, r.request);
+  }
+  const h = guard.requests.find((r) => r.request === "horror");
+  assert.ok(h && !h.gentle.includes("horror") && h.gentle.includes("kind friend"));
 });
 
 test("lullaby: each chapter gets its own tune, the same one every time", async () => {

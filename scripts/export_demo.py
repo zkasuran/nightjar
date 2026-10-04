@@ -285,12 +285,17 @@ def guard_corpus(story_data: dict) -> dict:
         "snow and red boots",
         "",
     ]
-    req_cases = [
-        {"request": r, "avoid": story_data["child"]["avoid"], "expect": guard.screen_request(r, story_data["child"]["avoid"])}
-        for r in requests
-    ]
+    requests += ["horror", "a scary ghost story with a monster", "a zombie in my closet", "Pim and the Thunder", "the fire never came back"]
+    req_cases = []
+    for r in requests:
+        text, found = guard.gentle_request(r, story_data["child"]["avoid"])
+        req_cases.append({"request": r, "avoid": story_data["child"]["avoid"], "expect": found, "gentle": text})
     return {
         "requests": req_cases,
+        "gentle": guard.GENTLE,
+        "gentle_phrases": guard.GENTLE_PHRASES,
+        "genre": sorted(guard.GENRE),
+        "genre_line": guard.GENRE_LINE,
         "banned": sorted(guard.BANNED),
         "banned_phrases": list(guard.BANNED_PHRASES),
         "meta": list(guard.META),

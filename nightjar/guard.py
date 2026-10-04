@@ -205,22 +205,104 @@ def redact(text: str) -> str:
     return out
 
 
-def screen_request(request: str, avoid: list[str] | None = None) -> list[str]:
-    """Words in a child's request that the story must soften, not refuse.
+# A child's request is rewritten before the model sees it. The scary word is
+# replaced, never quoted: telling a 1B model "do not say horror" puts "horror"
+# in its prompt, and it said it back on every draft.
+GENTLE = {
+    "monster": "fluffy friend",
+    "monsters": "fluffy friends",
+    "ghost": "glowy friend",
+    "ghosts": "glowy friends",
+    "demon": "sleepy dragon",
+    "witch": "kind wizard",
+    "nightmare": "dream",
+    "nightmares": "dreams",
+    "scary": "silly",
+    "terrifying": "silly",
+    "horror": "silly",
+    "evil": "grumpy",
+    "curse": "wish",
+    "cursed": "wished",
+    "fire": "warm glow",
+    "flames": "warm glow",
+    "burn": "glow",
+    "burned": "glowed",
+    "burning": "glowing",
+    "dead": "sleepy",
+    "death": "sleep",
+    "die": "nap",
+    "died": "napped",
+    "dies": "naps",
+    "kill": "hug",
+    "killed": "hugged",
+    "kills": "hugs",
+    "killing": "hugging",
+    "drown": "splash",
+    "drowned": "splashed",
+    "sick": "sleepy",
+    "illness": "sniffle",
+    "hospital": "doctor's house",
+    "ambulance": "helper car",
+    "police": "helper",
+    "jail": "home",
+    "steal": "borrow",
+    "stolen": "borrowed",
+    "hate": "like",
+    "hates": "likes",
+    "stupid": "silly",
+    "ugly": "funny",
+    "punish": "hug",
+    "punished": "hugged",
+    # Not banned in output, but a four year old asking for one wants the friendly kind.
+    "zombie": "sleepy giant",
+    "zombies": "sleepy giants",
+    "vampire": "friendly bat",
+    "vampires": "friendly bats",
+    "skeleton": "dancing scarecrow",
+    "spooky": "silly",
+    "creepy": "silly",
+}
+GENTLE_PHRASES = {
+    "lost forever": "found again",
+    "never came back": "came back home",
+    "never returned": "came home",
+    "alone forever": "with friends",
+}
+GENRE = frozenset({"horror", "scary", "terrifying", "nightmare", "nightmares", "spooky", "creepy", "evil"})
+GENRE_LINE = "a silly, cosy story where a shadow in the dark turns out to be a kind friend"
 
-    Children ask for dragons and monsters. Refusing teaches them nothing and
-    the guardrail on the output already holds the line, so the request goes
-    through with an instruction to make the scary thing friendly.
+
+def gentle_request(request: str, avoid: list[str] | None = None) -> tuple[str, list[str]]:
+    """(the request rewritten gently, the words that were softened).
+
+    Children ask for dragons and horror. Refusing teaches them nothing, and
+    the output guardrail still holds the line, so the idea is kept and made
+    friendly instead.
     """
     if not isinstance(request, str):
-        return []
-    lowered = normalise(request[: MAX_TERM_CHARS * 8])
-    words = set(WORD_RE.findall(lowered))
-    found = sorted(BANNED & words)
-    found += [p for p in BANNED_PHRASES if p in lowered]
+        return "", []
+    text = " ".join(normalise(request[: MAX_TERM_CHARS * 8]).split())
+    words = set(WORD_RE.findall(text))
+    found = sorted((BANNED | set(GENTLE)) & words)
+    found += [p for p in BANNED_PHRASES if p in text]
+    terms = []
     for term in (avoid or [])[:MAX_AVOID_TERMS]:
         if isinstance(term, str):
             t = normalise(term).strip()[:MAX_TERM_CHARS]
-            if t and t in lowered and t not in found:
+            if t and t in text and t not in found:
                 found.append(t)
-    return found
+                terms.append(t)
+    for t in terms:
+        text = text.replace(t, "something cosy")
+    for phrase, nice in GENTLE_PHRASES.items():
+        text = text.replace(phrase, nice)
+    text = WORD_RE.sub(lambda m: GENTLE.get(m.group(0), "" if m.group(0) in BANNED else m.group(0)), text)
+    text = " ".join(text.split()).strip(" ,")
+    if GENRE & words:
+        text = f"{text}, {GENRE_LINE}" if len(WORD_RE.findall(text)) > 2 else GENRE_LINE
+    return text, found
+
+
+def screen_request(request: str, avoid: list[str] | None = None) -> list[str]:
+    """Words in a child's request that get softened."""
+    return gentle_request(request, avoid)[1]

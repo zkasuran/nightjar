@@ -7,6 +7,10 @@ export const MAX_AVOID_TERMS = 64;
 export const MAX_TERM_CHARS = 64;
 
 export interface Rules {
+  gentle?: Record<string, string>;
+  gentle_phrases?: Record<string, string>;
+  genre?: string[];
+  genre_line?: string;
   banned: string[];
   banned_phrases: string[];
   meta: string[];
@@ -122,17 +126,34 @@ function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Port of guard.screen_request: words in a child's request to soften, not refuse. */
-export function screenRequest(rules: Rules, request: unknown, avoid: string[] = []): string[] {
-  if (typeof request !== "string") return [];
-  const lowered = normalise([...request].slice(0, MAX_TERM_CHARS * 8).join(""));
-  const words = new Set(lowered.match(WORD_RE) ?? []);
-  const found = [...rules.banned].sort().filter((w) => words.has(w));
-  for (const p of rules.banned_phrases) if (lowered.includes(p)) found.push(p);
+/** Port of guard.gentle_request: rewrite a child's request so the scary word
+ *  never reaches the model, and report what was softened. */
+export function gentleRequest(rules: Rules, request: unknown, avoid: string[] = []): { text: string; found: string[] } {
+  if (typeof request !== "string") return { text: "", found: [] };
+  const gentle = rules.gentle ?? {};
+  const banned = new Set(rules.banned);
+  let text = normalise([...request].slice(0, MAX_TERM_CHARS * 8).join("")).split(/\s+/).filter(Boolean).join(" ");
+  const words = new Set(text.match(WORD_RE) ?? []);
+  const found = [...new Set([...rules.banned, ...Object.keys(gentle)])].sort().filter((w) => words.has(w));
+  for (const p of rules.banned_phrases) if (text.includes(p)) found.push(p);
+  const terms: string[] = [];
   for (const term of avoid.slice(0, MAX_AVOID_TERMS)) {
     if (typeof term !== "string") continue;
     const t = [...pyStrip(normalise(term))].slice(0, MAX_TERM_CHARS).join("");
-    if (t && lowered.includes(t) && !found.includes(t)) found.push(t);
+    if (t && text.includes(t) && !found.includes(t)) {
+      found.push(t);
+      terms.push(t);
+    }
   }
-  return found;
+  for (const t of terms) text = text.split(t).join("something cosy");
+  for (const [p, nice] of Object.entries(rules.gentle_phrases ?? {})) text = text.split(p).join(nice);
+  text = text.replace(WORD_RE, (w) => gentle[w] ?? (banned.has(w) ? "" : w));
+  text = text.split(/\s+/).filter(Boolean).join(" ").replace(/^[ ,]+|[ ,]+$/g, "");
+  if ((rules.genre ?? []).some((g) => words.has(g))) text = (text.match(WORD_RE) ?? []).length > 2 ? `${text}, ${rules.genre_line}` : (rules.genre_line ?? text);
+  return { text, found };
+}
+
+/** Port of guard.screen_request. */
+export function screenRequest(rules: Rules, request: unknown, avoid: string[] = []): string[] {
+  return gentleRequest(rules, request, avoid).found;
 }
