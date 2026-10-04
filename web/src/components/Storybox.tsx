@@ -491,7 +491,7 @@ export function Storybox({ chapter, autoplay = false, label, onEnd, passes = tru
             tk.isWord ? (
               <span key={i} className={`w ${tk.w < pos ? "read" : ""} ${tk.w === pos ? "now" : ""}`} onClick={() => seek(starts[tk.w] - 0.02, tk.w)} title="Read from here">{tk.text}</span>
             ) : (
-              <span key={i}>{tk.text.includes("\n") ? <br /> : tk.text}</span>
+              <span key={i}>{/\n\s*\n/.test(tk.text) ? <span className="para-gap" /> : tk.text.includes("\n") ? <br /> : tk.text}</span>
             ),
           )}
         </div>

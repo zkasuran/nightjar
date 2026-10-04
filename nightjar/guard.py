@@ -102,6 +102,11 @@ META = (
     "tell you a story",
     "read you a story",
     "to be here to read",
+    # The model echoing its own instructions back, seen in the first long run.
+    "everyone gets cosy",
+    "part 1 of",
+    "part 2 of",
+    "part 3 of",
 )
 
 # The model leaked its own JSON scaffolding into the story. Reading raw JSON

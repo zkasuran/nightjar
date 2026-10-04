@@ -20,6 +20,11 @@ run "$T/a" asleep 7 >/dev/null
 run "$T/a" tune | grep -q "10 labelled" || { echo "e2e: asleep did not label the night"; exit 1; }
 run "$T/a" book | grep -q "book-" || { echo "e2e: book not built"; exit 1; }
 echo "e2e honest: refused the leak, accepted the chapter, logged, tuned, built the book"
+out=$(run "$T/a" tonight "a sleepy train" --long --no-audio --backend knn --night 2026-10-04)
+paras=$(python3 -c "import json,glob;d=json.load(open(sorted(glob.glob('$T/a/out/stories/2026-10-04-*.json'))[0]));print(d['text'].count(chr(10)*2)+1, d['knobs']['parts'], len(d['text'].split()))")
+read -r np kp nw <<<"$paras"
+[ "$np" = 3 ] && [ "$kp" = 3 ] && [ "$nw" -gt 250 ] || { echo "e2e: long story has $np parts, knobs.parts=$kp, $nw words"; exit 1; }
+echo "e2e long: three guarded parts, $nw words, one chapter"
 kill %1; wait %1 2>/dev/null || true
 
 python3 scripts/fake_ollama.py "$PORT" hostile & sleep 0.6

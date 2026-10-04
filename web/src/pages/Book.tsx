@@ -75,7 +75,10 @@ function Body({ d }: { d: Demo }) {
               </motion.div>
             </AnimatePresence>
           </div>
-          <p className="t-xs" style={{ textAlign: "center" }}>The CLI writes the same book as HTML and, with weasyprint installed, a PDF.</p>
+          <div className="row" style={{ justifyContent: "center" }}>
+            <a className="btn primary" href="/demo/book.pdf" download="Book-of-Nights.pdf">Download the A5 PDF</a>
+          </div>
+          <p className="t-xs" style={{ textAlign: "center" }}>Made by <code className="mono">nightjar book</code> with WeasyPrint from the same recorded chapters. Print it double sided and staple the spine.</p>
         </div>
       </section>
     </>

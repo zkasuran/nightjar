@@ -14,7 +14,7 @@ import { Story } from "./pages/Story";
 import { Tuner } from "./pages/Tuner";
 
 const TITLES: Record<string, string> = {
-  "": "Bedtime stories that learn what puts her to sleep",
+  "": "Bedtime stories that learn what gets them to sleep",
   ask: "Ask for a story",
   story: "Tonight's chapter",
   tuner: "The tuner",

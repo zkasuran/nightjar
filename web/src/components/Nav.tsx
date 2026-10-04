@@ -234,7 +234,7 @@ export function Footer() {
       <div className="wrap">
         <div style={{ display: "grid", gap: 10 }}>
           <div className="row"><Mark size={24} /><b style={{ color: "var(--ink)", fontFamily: "var(--font-display)", fontSize: 18 }}>Nightjar</b></div>
-          <p>Bedtime stories that learn what puts her to sleep. Open weights, on your own laptop.</p>
+          <p>Bedtime stories that learn what gets them to sleep. Open weights, on your own laptop.</p>
           <p className="t-xs">Story model: Gemma 3 by Google, under the Gemma Terms of Use. Tuner: Built with PriorLabs-TabPFN. Source available under LicenseRef-zkasuran-SAND-1.0.</p>
         </div>
         {NAV.filter((c) => c.id !== "privacy").map((c) => (

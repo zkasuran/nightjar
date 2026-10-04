@@ -57,6 +57,8 @@ def cmd_tonight(args) -> int:
         knobs.target_words = args.words
     if args.pace:
         knobs.pace_wpm = args.pace
+    if args.long:
+        knobs.parts = story.LONG_PARTS
     if args.cast:
         knobs.cast = [c.strip() for c in args.cast.split(",") if c.strip()]
     elif bible.cast_names() and not args.request:
@@ -183,6 +185,7 @@ def main(argv: list[str] | None = None) -> int:
     p_tonight.add_argument("--backend", default="auto", choices=["auto", "tabpfn", "knn"])
     p_tonight.add_argument("--no-audio", action="store_true")
     p_tonight.add_argument("--play", action="store_true", help="play audio when done")
+    p_tonight.add_argument("--long", action="store_true", help="a long story, written in three parts")
     p_tonight.add_argument("--night", type=_iso_date, default=None, help="ISO date for this chapter (default: today)")
     p_tonight.set_defaults(fn=cmd_tonight)
 

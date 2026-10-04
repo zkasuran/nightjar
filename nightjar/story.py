@@ -57,9 +57,13 @@ class Knobs:
     calm_level: int = 4  # 1 = eventful, 5 = almost nothing happens
     cast: list[str] = field(default_factory=list)
     is_sequel: bool = True
+    # A 1B model will not write past ~150 words however it is asked, so a long
+    # story is written as several parts that continue each other.
+    parts: int = 1
 
     def describe(self) -> str:
         return (
+            f"{'long, ' + str(self.parts) + ' parts, ' if self.parts > 1 else ''}"
             f"words≈{self.target_words} pace={self.pace_wpm}wpm "
             f"calm={self.calm_level}/5 sequel={'yes' if self.is_sequel else 'no'} "
             f"cast={', '.join(self.cast) or 'storyteller picks'}"
@@ -206,10 +210,16 @@ def _clean_title(title: str) -> str:
     return t[:MAX_TITLE_CHARS] or "Tonight's Chapter"
 
 
+_TRAIL_SLASH = re.compile(r"[ \t]*\\+[ \t]*$", re.M)
+
+
 def _parse(raw: str) -> dict:
     """Small models wander outside JSON; recover what we can."""
     out = _parse_raw(raw)
     out["title"] = _clean_title(out["title"])
+    # gemma3:1b sometimes ends every line with a stray backslash (seen in the
+    # first long story). They would be printed as junk.
+    out["text"] = _TRAIL_SLASH.sub("", out["text"].replace("\\n", "\n"))
     return out
 
 
@@ -243,7 +253,118 @@ def _parse_raw(raw: str) -> dict:
         "summary": first_sentence,
         "cast": [],
         "open_thread": "",
+        "_prose_title": title != "Tonight's Chapter",
     }
+
+
+LONG_PARTS = 3
+PART_WORDS = 150
+
+# For every part but the last. The normal system prompt tells the model the
+# story ends with everyone asleep, and it obeyed: in the first long run the
+# story ended, said goodnight, then started again in part two.
+SYSTEM_MIDDLE = SYSTEM.replace(
+    "The story ends with everyone safe, warm and already sleepy.",
+    "You are writing only one part of a longer story. Never end it, never say goodnight and never put anyone to sleep yet.",
+)
+
+_SENT = re.compile(r"[^.!?\n]+[.!?]?")
+
+
+def _sentences(text: str) -> set[str]:
+    out = set()
+    for m in _SENT.finditer(text.lower()):
+        words = re.findall(r"[a-z']+", m.group(0))
+        if len(words) >= 5:
+            out.add(" ".join(words))
+    return out
+
+
+def _continue_prompt(child: Child, knobs: Knobs, request: str, so_far: str, part: int, parts: int) -> str:
+    sents = [x.strip() for x in re.split(r"(?<=[.!?])\s+", so_far.strip()) if x.strip()]
+    last = sents[-2:]
+    # The opening carries the names. Without it the dragon "Sparkle" came back
+    # as "Flicker" two parts later.
+    opening = sents[:2] if len(sents) > 4 else []
+    final = part == parts
+    lines = [
+        f"You are continuing tonight's bedtime story for {child.name}, who is {child.age} years old.",
+        f"The story is about: {request}." if request else "",
+        f"The story began like this: {' '.join(opening)}" if opening else "",
+        f"The story so far ends like this: {' '.join(last)}",
+        "Keep every name exactly the same.",
+        "",
+        f"Write part {part} of {parts}. Begin with something new that happens next, with the same characters. Never repeat a sentence that was already written.",
+        f"- About {PART_WORDS} words. Short sentences. Very quiet and gentle.",
+        "- This is the last part. Bring the characters home, warm and safe, and let them drift off."
+        if final
+        else "- Do not end the story yet. Stop at a calm moment.",
+        "",
+        # Plain prose: asked for JSON, the 1B model wrapped every continuation
+        # in broken JSON and the scaffolding rule refused all of them.
+        "Reply with the story text only. No title, no JSON, no notes.",
+    ]
+    return "\n".join(x for x in lines if x)
+
+
+def _write_part(
+    child: Child,
+    prompt: str,
+    night: str,
+    request: str,
+    target: int,
+    min_words: int,
+    on_attempt,
+    label: str,
+    system: str = SYSTEM,
+    previous: str = "",
+):
+    """Generate one guarded piece. Returns (parsed, attempts, rejected, drafts, ms, tokens)."""
+    rejected: list[list[str]] = []
+    drafts: list[dict] = []
+    total_ms = 0
+    for attempt in range(1, SETTINGS.guard_retries + 1):
+        if on_attempt:
+            on_attempt(attempt, rejected[-1] if rejected else [], label)
+        extra = ""
+        if rejected:
+            extra = (
+                "\n\nYour previous attempt was rejected by a safety filter for: "
+                + "; ".join(rejected[-1])
+                + ". Write a calmer version and avoid those words entirely."
+            )
+        completion = llm.generate(
+            prompt + extra,
+            system=system,
+            temperature=0.8 if attempt == 1 else 0.6,
+            num_predict=min(1200, int(target * 2.2)),
+        )
+        total_ms += completion.duration_ms
+        parsed = _parse(completion.text)
+        # The title is screened for content but excluded from the length
+        # bounds: it is read aloud and printed in the book, but it is not the
+        # story. Screening only the body let "Thunder and the Moon's Light"
+        # through on an avoid-listed word.
+        verdict = guard.check(
+            parsed["text"], avoid=child.avoid, max_words=int(target * 1.8), min_words=min_words, also_screen=parsed["title"]
+        )
+        if previous and verdict.ok:
+            copied = _sentences(parsed["text"]) & _sentences(previous)
+            if copied:
+                verdict = guard.Verdict(False, [f"repeats an earlier sentence: {sorted(copied)[0][:60]}"])
+        if verdict.ok:
+            return parsed, attempt, rejected, drafts, total_ms, completion.eval_tokens
+        rejected.append(verdict.violations)
+        drafts.append(
+            {
+                "attempt": attempt,
+                "part": label,
+                "title": guard.redact(parsed["title"])[:MAX_TITLE_CHARS],
+                "text": guard.redact(parsed["text"])[:1200],
+                "violations": verdict.violations,
+            }
+        )
+    raise GuardRefused(night, request, drafts)
 
 
 def tonight(
@@ -254,75 +375,73 @@ def tonight(
     log_night: str | None = None,
     on_attempt=None,
 ) -> Story:
-    """Generate and guard tonight's chapter. Raises if every attempt is unsafe."""
+    """Generate and guard tonight's chapter. Raises GuardRefused if any part
+    is refused on every try: a long story with an unsafe middle is not read."""
     night = log_night or date.today().isoformat()
-    prompt = _build_prompt(child, knobs, bible, request)
-    rejected: list[list[str]] = []
-    drafts: list[dict] = []
-    total_ms = 0
+    parts = max(1, min(5, knobs.parts))
 
-    for attempt in range(1, SETTINGS.guard_retries + 1):
+    def hook(n: int, last: list[str], label: str) -> None:
         if on_attempt:
-            on_attempt(attempt, rejected[-1] if rejected else [])
-        extra = ""
-        if rejected:
-            extra = (
-                "\n\nYour previous attempt was rejected by a safety filter for: "
-                + "; ".join(rejected[-1])
-                + ". Write a calmer version and avoid those words entirely."
-            )
-        completion = llm.generate(
-            prompt + extra,
-            system=SYSTEM,
-            temperature=0.8 if attempt == 1 else 0.6,
-            num_predict=min(1200, int(knobs.target_words * 2.2)),
-        )
-        total_ms += completion.duration_ms
-        parsed = _parse(completion.text)
-        # The title is screened for content but excluded from the length
-        # bounds: it is read aloud and printed in the book, but it is not the
-        # story. Screening only the body let "Thunder and the Moon's Light"
-        # through on an avoid-listed word.
-        verdict = guard.check(
-            parsed["text"],
-            avoid=child.avoid,
-            max_words=int(knobs.target_words * 1.8),
-            also_screen=parsed["title"],
-        )
-        if verdict.ok:
-            story = Story(
-                title=parsed["title"],
-                text=parsed["text"],
-                night=night,
-                knobs=knobs,
-                attempts=attempt,
-                rejected=rejected,
-                rejected_drafts=drafts,
-                gen_ms=total_ms,
-                eval_tokens=completion.eval_tokens,
-            )
-            cast = parsed["cast"] or knobs.cast
-            bible.add_chapter(
-                Chapter(
-                    night=night,
-                    title=story.title,
-                    summary=parsed["summary"] or story.text[:160],
-                    cast=cast,
-                    open_thread=parsed["open_thread"],
-                )
-            )
-            return story
-        rejected.append(verdict.violations)
-        drafts.append(
-            {
-                "attempt": attempt,
-                "title": guard.redact(parsed["title"])[:MAX_TITLE_CHARS],
-                "text": guard.redact(parsed["text"])[:1200],
-                "violations": verdict.violations,
-            }
-        )
+            try:
+                on_attempt(n, last, label)
+            except TypeError:  # older two argument callbacks
+                on_attempt(n, last)
 
-    raise GuardRefused(night, request, drafts)
+    first_knobs = knobs if parts == 1 else Knobs(**{**knobs.__dict__, "target_words": PART_WORDS})
+    prompt = _build_prompt(child, first_knobs, bible, request)
+    if parts > 1:
+        prompt = prompt.replace(
+            "- End with everyone safe and asleep.",
+            f"- This is part 1 of {parts} of a longer story. Do not end it yet; stop at a calm moment.",
+        )
+    parsed, attempts, rejected, drafts, ms, tokens = _write_part(
+        child, prompt, night, request, first_knobs.target_words, 60, hook, f"1/{parts}", SYSTEM if parts == 1 else SYSTEM_MIDDLE
+    )
+    title = parsed["title"]
+    texts = [parsed["text"]]
+    summary, thread, cast = parsed["summary"], parsed["open_thread"], parsed["cast"]
+    all_rejected, all_drafts = list(rejected), list(drafts)
+    for part in range(2, parts + 1):
+        cp = _continue_prompt(child, knobs, request, "\n".join(texts), part, parts)
+        pp, a2, r2, d2, ms2, t2 = _write_part(
+            child,
+            cp,
+            night,
+            request,
+            PART_WORDS,
+            40,
+            hook,
+            f"{part}/{parts}",
+            SYSTEM if part == parts else SYSTEM_MIDDLE,
+            "\n".join(texts),
+        )
+        # A continuation has no title; if the model answered in prose, its first
+        # line is story, not a heading.
+        texts.append(f"{pp['title']}\n{pp['text']}" if pp.get("_prose_title") else pp["text"])
+        attempts += a2
+        all_rejected += r2
+        all_drafts += d2
+        ms += ms2
+        tokens += t2
+        if part == parts:
+            ends = re.split(r"(?<=[.!?])\s+", texts[-1].strip())
+            summary = f"{summary} {ends[-1]}".strip()[:400] if ends else summary
+
+    story = Story(
+        title=title,
+        text="\n\n".join(t.strip() for t in texts),
+        night=night,
+        knobs=knobs,
+        attempts=attempts,
+        rejected=all_rejected,
+        rejected_drafts=all_drafts,
+        gen_ms=ms,
+        eval_tokens=tokens,
+    )
+    bible.add_chapter(
+        Chapter(night=night, title=story.title, summary=summary or story.text[:160], cast=cast or knobs.cast, open_thread=thread)
+    )
+    return story
 
 
 def night_features(child: Child, story: Story) -> features.NightFeatures:

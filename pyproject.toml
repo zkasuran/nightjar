@@ -9,7 +9,7 @@ dependencies = []  # core loop is stdlib-only, on purpose
 # Real tabular foundation model instead of the k-NN fallback.
 tune = ["tabpfn>=2.0", "numpy>=1.26"]
 # PDF output for the printable book.
-book = ["weasyprint>=62"]
+book = ["weasyprint==66.0"]
 
 [project.scripts]
 nightjar = "nightjar.cli:main"

@@ -284,3 +284,63 @@ class TestBook(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestLongStory(unittest.TestCase):
+    def test_continuation_prompts_end_only_at_the_last_part(self):
+        from nightjar.config import Child
+        from nightjar.story import Knobs, _continue_prompt
+
+        child = Child(name="Mira", age=4, reading_grade=1.0)
+        mid = _continue_prompt(child, Knobs(), "a sleepy train", "The train left.\nIt was dark.", 2, 3)
+        end = _continue_prompt(child, Knobs(), "a sleepy train", "The train left.", 3, 3)
+        self.assertIn("Do not end the story yet", mid)
+        self.assertIn("part 2 of 3", mid)
+        self.assertIn("It was dark.", mid)
+        self.assertIn("drift off", end)
+        long_so_far = "Sparkle the dragon napped. He was blue. He met Pim. Pim had boots. They walked far."
+        names = _continue_prompt(child, Knobs(), "a dragon", long_so_far, 2, 3)
+        self.assertIn("Sparkle the dragon napped.", names)
+        self.assertIn("Keep every name exactly the same", names)
+        self.assertNotIn("JSON only", names)
+        self.assertNotIn("Do not end", end)
+
+    def test_prose_continuation_keeps_its_first_line(self):
+        from nightjar.story import _parse
+
+        p = _parse("The train rolled on.\nIt hummed softly.")
+        self.assertTrue(p["_prose_title"])
+        self.assertEqual(f"{p['title']}\n{p['text']}", "The train rolled on.\nIt hummed softly.")
+
+
+class TestLongStoryGuards(unittest.TestCase):
+    def test_trailing_backslashes_are_removed(self):
+        import json
+
+        from nightjar.story import _parse
+
+        raw = json.dumps({"title": "T", "text": "The sun was fading. \\\\\nThe tracks were blue.\\\\"})
+        out = _parse(raw)["text"]
+        self.assertNotIn("\\", out)
+        self.assertIn("The tracks were blue.", out)
+
+    def test_repeated_sentence_is_detected(self):
+        from nightjar.story import _sentences
+
+        a = "The train slowed down a bit, and it started to turn. It hummed."
+        self.assertTrue(_sentences(a) & _sentences("The train slowed down a bit, and it started to turn."))
+        self.assertFalse(_sentences("It hummed.") & _sentences(a))  # under five words is not a repeat
+
+    def test_middle_parts_are_told_not_to_end(self):
+        from nightjar.story import SYSTEM, SYSTEM_MIDDLE
+
+        self.assertIn("Never end it", SYSTEM_MIDDLE)
+        self.assertNotIn("already sleepy", SYSTEM_MIDDLE)
+        self.assertIn("already sleepy", SYSTEM)
+
+
+class TestInstructionEcho(unittest.TestCase):
+    def test_echoed_instructions_are_refused(self):
+        body = "Pim walked slowly in the quiet garden. " * 10
+        self.assertFalse(guard.check(body + "Everyone gets cosy, safe and falls sleep.").ok)
+        self.assertFalse(guard.check(body + "This was part 2 of 3.").ok)

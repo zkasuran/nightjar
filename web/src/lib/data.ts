@@ -19,7 +19,7 @@ export interface Chapter {
   night: string;
   title: string;
   text: string;
-  knobs: { target_words: number; pace_wpm: number; calm_level: number; cast: string[]; is_sequel: boolean };
+  knobs: { target_words: number; pace_wpm: number; calm_level: number; cast: string[]; is_sequel: boolean; parts?: number };
   attempts: number;
   rejected: Draft[];
   gen_ms: number;
@@ -151,7 +151,7 @@ function validate(d: Demo): Demo {
   return d;
 }
 
-const AUDIO_MAX = 12_000_000;
+const AUDIO_MAX = 40_000_000;
 
 /** Fetch a narration, check its sha256 from the verified fixture, hand back a
  *  blob: URL. Fully buffered, so pause and resume never wait on the network. */

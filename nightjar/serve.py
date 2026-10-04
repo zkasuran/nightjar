@@ -18,6 +18,8 @@ import json
 import mimetypes
 import re
 import secrets
+import shutil
+import subprocess
 import threading
 import time
 from http import HTTPStatus
@@ -60,14 +62,40 @@ def _chapter_payload(st: story.Story, child: Child) -> dict:
     }
     wav = OUT_DIR / "audio" / f"{st.slug}.wav"
     meta = wav.with_suffix(".words.json")
-    if wav.exists() and meta.exists():
+    mp3 = wav.with_suffix(".mp3")
+    # A long story is ~13 MB of WAV; MP3 is a tenth of that and loads at once on a phone.
+    if wav.exists() and shutil.which("ffmpeg") and not mp3.exists():
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-i",
+                str(wav),
+                "-ac",
+                "1",
+                "-c:a",
+                "libmp3lame",
+                "-b:a",
+                "64k",
+                "-write_xing",
+                "0",
+                str(mp3),
+            ],
+            check=False,
+            timeout=120,
+        )
+    audio_file = mp3 if mp3.exists() else wav
+    if audio_file.exists() and meta.exists():
         m = json.loads(meta.read_text())
         words = m["words"]
         if len(words) == len(st.text.split()):
             dur = float(m["duration"])
             payload["audio"] = {
-                "src": f"api/audio/{st.slug}.wav",
-                "sha256": hashlib.sha256(wav.read_bytes()).hexdigest(),
+                "src": f"api/audio/{audio_file.name}",
+                "sha256": hashlib.sha256(audio_file.read_bytes()).hexdigest(),
                 "voice": "Kokoro-82M af_heart",
                 "duration": dur,
                 "speech_wpm": round(len(words) / dur * 60, 1),
@@ -77,7 +105,7 @@ def _chapter_payload(st: story.Story, child: Child) -> dict:
     return payload
 
 
-def _run(job: str, request: str) -> None:
+def _run(job: str, request: str, long: bool = False) -> None:
     try:
         child = Child.load()
         bible = Bible.load()
@@ -86,10 +114,11 @@ def _run(job: str, request: str) -> None:
         knobs = rec.knobs
         # Her request leads. Old characters are offered as history, not forced in.
         knobs.cast = [] if request else bible.cast_names()[:2]
+        knobs.parts = story.LONG_PARTS if long else 1
         _set(job, stage="writing", tuner=rec.explain(), soften=guard.screen_request(request, child.avoid))
 
-        def attempt(n: int, last: list[str]) -> None:
-            _set(job, stage="writing" if n == 1 else "rewriting", attempt=n, last_refusal=last)
+        def attempt(n: int, last: list[str], part: str = "1/1") -> None:
+            _set(job, stage="writing" if n == 1 else "rewriting", attempt=n, last_refusal=last, part=part)
 
         try:
             st = story.tonight(child, knobs, bible, request=request, on_attempt=attempt)
@@ -191,11 +220,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200 if state else 404, state or {"error": "no such job"})
         if path.startswith("/api/audio/"):
             name = path.rsplit("/", 1)[-1]
-            slug = name[:-4] if name.endswith(".wav") else ""
-            f = OUT_DIR / "audio" / f"{slug}.wav"
-            if not SLUG_RE.match(slug) or not f.is_file():
+            slug, _, ext = name.rpartition(".")
+            f = OUT_DIR / "audio" / f"{slug}.{ext}"
+            if ext not in ("wav", "mp3") or not SLUG_RE.match(slug) or not f.is_file():
                 return self._json(404, {"error": "no such audio"})
-            return self._send(200, f.read_bytes(), "audio/wav")
+            return self._send(200, f.read_bytes(), "audio/mpeg" if ext == "mp3" else "audio/wav")
         return self._static(path)
 
     def do_POST(self):  # noqa: N802
@@ -209,6 +238,9 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(req, str):
                 return self._json(400, {"error": "request must be text"})
             req = " ".join(req.split())[:MAX_REQUEST_CHARS]
+            length = data.get("length", "short")
+            if length not in ("short", "long"):
+                return self._json(400, {"error": "length must be short or long"})
             if not _busy.acquire(blocking=False):
                 return self._json(409, {"error": "already writing a story"})
             job = secrets.token_hex(8)
@@ -216,8 +248,8 @@ class Handler(BaseHTTPRequestHandler):
                 if len(_jobs) >= MAX_JOBS:
                     oldest = min(_jobs, key=lambda k: _jobs[k]["updated"])
                     _jobs.pop(oldest)
-                _jobs[job] = {"stage": "queued", "request": req, "updated": time.time()}
-            threading.Thread(target=_run, args=(job, req), daemon=True).start()
+                _jobs[job] = {"stage": "queued", "request": req, "length": length, "updated": time.time()}
+            threading.Thread(target=_run, args=(job, req, length == "long"), daemon=True).start()
             return self._json(202, {"job": job})
         if self.path == "/api/asleep":
             m = data.get("minutes")

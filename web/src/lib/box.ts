@@ -18,6 +18,7 @@ export type Stage = "queued" | "tuning" | "writing" | "rewriting" | "narrating" 
 export interface Job {
   stage: Stage;
   attempt?: number;
+  part?: string;
   last_refusal?: string[];
   soften?: string[];
   error?: string;
@@ -53,8 +54,8 @@ export async function boxHealth(): Promise<Health | null> {
   }
 }
 
-export async function startStory(request: string): Promise<string> {
-  const r = await call<{ job: string }>("/api/tonight", { method: "POST", body: JSON.stringify({ request: request.slice(0, 200) }) });
+export async function startStory(request: string, length: "short" | "long" = "short"): Promise<string> {
+  const r = await call<{ job: string }>("/api/tonight", { method: "POST", body: JSON.stringify({ request: request.slice(0, 200), length }) });
   if (!/^[0-9a-f]{16}$/.test(r.job)) throw new Error("bad job id");
   return r.job;
 }
@@ -62,10 +63,11 @@ export async function startStory(request: string): Promise<string> {
 export async function pollJob(job: string): Promise<Job> {
   const j = await call<Job>(`/api/job/${job}`);
   if (!STAGES.has(j.stage)) throw new Error("bad job state");
+  if (j.part !== undefined && !/^[1-5]\/[1-5]$/.test(j.part)) j.part = undefined;
   if (j.stage === "done") {
     const c = j.chapter;
     if (!c || typeof c.title !== "string" || typeof c.text !== "string" || c.text.length > 20_000) throw new Error("bad chapter");
-    if (c.audio && (!/^api\/audio\/[0-9a-z-]{1,120}\.wav$/.test(c.audio.src) || !Array.isArray(c.audio.words))) c.audio = null;
+    if (c.audio && (!/^api\/audio\/[0-9a-z-]{1,120}\.(wav|mp3)$/.test(c.audio.src) || !Array.isArray(c.audio.words))) c.audio = null;
   }
   return j;
 }

@@ -377,3 +377,9 @@ table.data input[type="number"] { width: 72px; padding: 4px 8px; text-align: rig
   .box-foot .progress { flex: 1 1 calc(100% - 120px); }
   .box-foot .chip { flex: 1 1 0; justify-content: center; }
 }
+.length { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.length-btn { display: grid; justify-items: center; gap: 2px; min-width: 210px; padding: 12px 18px; border-radius: 18px; border: 1px solid var(--edge); background: var(--panel); cursor: pointer; color: var(--ink); transition: border-color var(--t-fast), background-color var(--t-fast); }
+.length-btn b { font-size: 16px; }
+.length-btn[aria-pressed="true"] { border-color: var(--acc); background: var(--acc-soft); box-shadow: 0 0 0 3px var(--acc-soft); }
+@media (max-width: 520px) { .length-btn { min-width: 0; flex: 1 1 0; padding: 10px; } }
+.reader .para-gap { display: block; height: 0.9em; }

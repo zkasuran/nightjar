@@ -94,6 +94,15 @@ def build(child_name: str, days: int = 7, title: str | None = None) -> tuple[Pat
 
 def _to_pdf(html_path: Path) -> Path | None:
     pdf_path = html_path.with_suffix(".pdf")
+    try:
+        from weasyprint import HTML  # optional: pip install weasyprint
+
+        HTML(filename=str(html_path)).write_pdf(str(pdf_path))
+        return pdf_path
+    except ImportError:
+        pass
+    except Exception:  # a broken renderer must not lose the HTML book
+        pass
     for tool, args in (
         ("weasyprint", [str(html_path), str(pdf_path)]),
         ("wkhtmltopdf", ["--page-size", "A5", str(html_path), str(pdf_path)]),

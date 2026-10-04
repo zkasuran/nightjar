@@ -89,7 +89,7 @@ function Body({ d }: { d: Demo }) {
           <div className="copy">
             <motion.span className="eyebrow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>Built for one four year old</motion.span>
             <motion.h1 className="h-xl" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
-              Bedtime stories that learn what puts her to sleep.
+              Bedtime stories that learn what gets them to sleep.
             </motion.h1>
             <motion.p className="lede" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}>
               A new chapter every night, written by an open model on your own laptop. A hard guardrail reads every word first. Then it learns which stories get her to sleep faster.

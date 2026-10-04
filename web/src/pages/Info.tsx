@@ -275,6 +275,7 @@ export const Reports = withDemo((d) => {
             <Tick ok={false}>Reading level drifts. Grades ran from {Math.min(...d.stories.chapters.map((c) => c.features.fk_grade))} to {Math.max(...d.stories.chapters.map((c) => c.features.fk_grade))} for a four year old. The guardrail does not check it yet.</Tick>
             <Tick ok={false}>The guardrail is a word list. It catches words, not ideas. Night 5 asked for "a dragon that breathes fire" and the chapter that passed has Pim wishing for "a tiny flame". "flames" is banned. "flame" is not.</Tick>
             <Tick ok={false}>The tuner has only seen sample data. Whether it helps a real child is the open question.</Tick>
+            <Tick ok={false}>Long stories are three 1B model parts stitched together. Parts two and three follow the request well; part one can still drift toward last night's characters.</Tick>
             <Tick ok={false}>No physical box yet. The one button lives in the terminal and on this site.</Tick>
           </Reveal>
         </div>

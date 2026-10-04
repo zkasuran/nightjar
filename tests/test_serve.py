@@ -54,6 +54,7 @@ class TestServe(unittest.TestCase):
 
     def test_bad_values_are_refused(self):
         self.assertEqual(self.req("POST", "/api/tonight", {"request": 42})[0], 400)
+        self.assertEqual(self.req("POST", "/api/tonight", {"request": "x", "length": "epic"})[0], 400)
         for m in (-1, 241, "5", True, 2.5):
             self.assertEqual(self.req("POST", "/api/asleep", {"minutes": m})[0], 400, m)
 

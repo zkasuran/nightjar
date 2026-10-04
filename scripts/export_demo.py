@@ -299,8 +299,16 @@ def guard_corpus(story_data: dict) -> dict:
     }
 
 
+def book_pdf() -> None:
+    """The printable book of the recorded series, if nightjar book made one."""
+    pdfs = sorted((DEMO / "out").glob("book-*.pdf"))
+    if pdfs:
+        (OUT / "book.pdf").write_bytes(pdfs[-1].read_bytes())
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
+    book_pdf()
     s = stories()
     files = {"stories.json": s, "log.json": sample_log(), "tuner.json": tuner(), "guard.json": guard_corpus(s)}
     manifest = {}

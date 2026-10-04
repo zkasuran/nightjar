@@ -20,6 +20,19 @@ GOOD = json.dumps(
         "open_thread": "One leaf is still waiting.",
     }
 )
+THINGS = ["leaf", "pebble", "cloud", "feather", "petal", "acorn", "shell", "star", "button", "ribbon"]
+
+
+def good(n: int) -> str:
+    """A clean chapter whose sentences differ from call to call, like a model's."""
+    if n <= 2:
+        return GOOD
+    places = ["garden", "meadow", "river", "hill", "orchard", "pond", "lane", "forest", "harbour", "field"]
+    where = places[n % len(places)]
+    sents = [f"Pim found a soft {t} beside the quiet {where} at dusk." for t in THINGS]
+    return json.dumps({"text": " ".join(sents), "summary": "Pim found soft things.", "open_thread": "One more leaf."})
+
+
 LEAK = '```json\n{"title": "The Moon", "text": "Pim crawled slow.", \\"summary\\": "x"}\n```'
 MONSTER = json.dumps({"title": "Night", "text": " ".join(["A monster waited by the gate."] * 15)})
 
@@ -48,7 +61,7 @@ class H(BaseHTTPRequestHandler):
         if MODE == "hostile":
             reply = MONSTER if calls["n"] % 2 else LEAK
         else:
-            reply = LEAK if calls["n"] % 2 else GOOD
+            reply = LEAK if calls["n"] % 2 else good(calls["n"])
         self._send({"response": reply, "eval_count": 120, "prompt_eval_count": 300, "total_duration": 1_000_000_000})
 
 

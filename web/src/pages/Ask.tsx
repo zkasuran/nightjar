@@ -13,15 +13,56 @@ import type { In, Out } from "../workers/gemma";
 const SYSTEM =
   "You are a gentle bedtime storyteller for one small child. You write calm, warm, slightly dull stories designed to help a child fall asleep. Nothing frightening ever happens. There is no danger, no villain, no peril and no loud noise. Problems are small and are solved kindly. The story ends with everyone safe, warm and already sleepy. Write simple short sentences a young child can follow. Never mention that you are an AI and never address the reader.";
 
+/** Same rules as story.SYSTEM_MIDDLE and story._continue_prompt in Python. */
+const SYSTEM_MIDDLE = SYSTEM.replace(
+  "The story ends with everyone safe, warm and already sleepy.",
+  "You are writing only one part of a longer story. Never end it, never say goodnight and never put anyone to sleep yet.",
+);
+function continuePrompt(name: string, age: number, ask: string, soFar: string, part: number, parts: number): string {
+  const sents = soFar.trim().split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+  const opening = sents.length > 4 ? sents.slice(0, 2) : [];
+  return [
+    `You are continuing tonight's bedtime story for ${name}, who is ${age} years old.`,
+    `The story is about: ${ask}.`,
+    opening.length ? `The story began like this: ${opening.join(" ")}` : "",
+    `The story so far ends like this: ${sents.slice(-2).join(" ")}`,
+    "Keep every name exactly the same.",
+    `Write part ${part} of ${parts}. Begin with something new that happens next, with the same characters. Never repeat a sentence that was already written.`,
+    "About 120 words. Short sentences. Very quiet and gentle.",
+    part === parts ? "This is the last part. Bring the characters home, warm and safe, and let them drift off." : "Do not end the story yet. Stop at a calm moment.",
+    "Reply with the story text only. No title, no notes.",
+  ].filter(Boolean).join("\n");
+}
+const sentenceSet = (t: string) =>
+  new Set(
+    [...t.toLowerCase().matchAll(/[^.!?\n]+[.!?]?/g)]
+      .map((m) => (m[0].match(/[a-z']+/g) ?? []).join(" "))
+      .filter((x) => x.split(" ").length >= 5),
+  );
+function repeats(part: string, before: string): boolean {
+  const b = sentenceSet(before);
+  return [...sentenceSet(part)].some((x) => b.has(x));
+}
+
+type Length = "short" | "long";
+const LENGTH_KEY = "nightjar-length";
+const lengthPref = (): Length => {
+  try {
+    return sessionStorage.getItem(LENGTH_KEY) === "long" ? "long" : "short";
+  } catch {
+    return "short";
+  }
+};
+
 /** Picture tiles a four year old can choose without reading. */
 const TOPICS: Array<{ emoji: string; label: string; ask: string }> = [
   { emoji: "🐢", label: "Pim the turtle", ask: "Pim the turtle goes on a slow little walk" },
   { emoji: "🌙", label: "The moon", ask: "the moon comes down to visit" },
   { emoji: "❄️", label: "Snow", ask: "soft snow falling on the garden" },
-  { emoji: "👢", label: "Red boots", ask: "my red boots go on a tiny adventure" },
   { emoji: "🐉", label: "A friendly dragon", ask: "a friendly little dragon who is very sleepy" },
   { emoji: "🚂", label: "A sleepy train", ask: "a sleepy train going home at night" },
   { emoji: "🧸", label: "Teddy", ask: "my teddy bear has a picnic under the stars" },
+  { emoji: "🎒", label: "Big school", ask: "my first days at big school, the new friends and the kind teacher, and coming home safe" },
   { emoji: "🌊", label: "The sea", ask: "little waves at the beach at night" },
 ];
 
@@ -42,7 +83,7 @@ type Phase = { k: "pick" } | { k: "working"; stage: Stage; note?: string } | { k
 function TabNote({ gpu }: { gpu: boolean | null }) {
   return (
     <p className="t-xs" style={{ textAlign: "center", maxWidth: 560, margin: "0 auto" }}>
-      This public page writes the story in your browser with Gemma 3 270M. The first time it downloads {gpu ? "about 280 MB" : "about 550 MB"} to this device and {gpu ? "takes under a minute" : "can take five minutes on a laptop without WebGPU"}. It reads aloud with this device's own voice. On the laptop box (<code className="mono">nightjar serve</code>) the story is ready in about a minute and read aloud.
+      This public page writes the story in your browser with Gemma 3 270M. The first time it downloads {gpu ? "about 280 MB" : "about 550 MB"} to this device and {gpu ? "takes under a minute" : "can take five minutes on a laptop without WebGPU"}. It reads aloud with this device's own voice. On the laptop box (<code className="mono">nightjar serve</code>) it is written in about three minutes (six for a long one) and read aloud in a softer offline voice.
     </p>
   );
 }
@@ -54,6 +95,15 @@ function Body({ d }: { d: Demo }) {
   const [req, setReq] = useState("");
   const [phase, setPhase] = useState<Phase>({ k: "pick" });
   const [asleep, setAsleep] = useState<string>("");
+  const [length, setLengthState] = useState<Length>(lengthPref);
+  const setLength = (l: Length) => {
+    setLengthState(l);
+    try {
+      sessionStorage.setItem(LENGTH_KEY, l);
+    } catch {
+      /* lasts for this page */
+    }
+  };
   const worker = useRef<Worker | null>(null);
   const name = health?.name || d.stories.child.name;
   const avoid = d.stories.child.avoid;
@@ -78,7 +128,7 @@ function Body({ d }: { d: Demo }) {
   const makeBox = async (ask: string) => {
     setPhase({ k: "working", stage: "queued" });
     try {
-      const job = await startStory(ask);
+      const job = await startStory(ask, length);
       const started = Date.now();
       for (;;) {
         await new Promise((r) => setTimeout(r, 1000));
@@ -93,7 +143,8 @@ function Body({ d }: { d: Demo }) {
         }
         if (j.stage === "refused") return setPhase({ k: "refused" });
         if (j.stage === "error") return setPhase({ k: "error", msg: j.error ?? "unknown error" });
-        setPhase({ k: "working", stage: j.stage, note: j.stage === "rewriting" ? `Try ${j.attempt}` : undefined });
+        const partNote = length === "long" && j.part && j.part !== "1/1" ? `Part ${j.part.replace("/", " of ")}` : "";
+        setPhase({ k: "working", stage: j.stage, note: [partNote, j.stage === "rewriting" ? `try ${j.attempt}` : ""].filter(Boolean).join(", ") || undefined });
         if (Date.now() - started > 15 * 60_000) return setPhase({ k: "error", msg: "That took too long. Is Ollama running?" });
       }
     } catch (e) {
@@ -121,18 +172,30 @@ function Body({ d }: { d: Demo }) {
         setPhase({ k: "error", msg: "The story model stopped answering. This device may not have enough memory for it. The recorded chapters still work, with a real voice." });
       }
     }, 5000);
-    const prompt = [
+    const parts = length === "long" ? 3 : 1;
+    const texts: string[] = [];
+    let title = "Tonight's Chapter";
+    let totalMs = 0;
+    let totalTokens = 0;
+    let attempts = 0;
+    const first = [
       `Tonight you are writing for ${name}, who is ${d.stories.child.age} years old.`,
       `${name} asked for this tonight, and the story must be about it: ${ask}.`,
       soften.length ? `Some of that could feel scary (${soften.join(", ")}). Keep the idea but make it friendly, small and gentle. Do not use those words.` : "",
-      "Write about 120 words. Very quiet; almost nothing happens. Short sentences. End with everyone safe and asleep.",
+      parts > 1
+        ? `This is part 1 of ${parts} of a longer story. Write about 120 words. Very quiet. Short sentences. Do not end the story yet; stop at a calm moment.`
+        : "Write about 120 words. Very quiet; almost nothing happens. Short sentences. End with everyone safe and asleep.",
       "Put a short title on the first line, then the story. No other text.",
     ].filter(Boolean).join("\n");
+    const promptFor = (part: number) => (part === 1 ? first : continuePrompt(name, d.stories.child.age, ask, texts.join("\n"), part, parts));
     const generate = () => {
       tries++;
+      attempts++;
       text = "";
-      setPhase({ k: "working", stage: tries > 1 ? "rewriting" : "writing", note: tries > 1 ? `Try ${tries}` : undefined });
-      w.postMessage({ type: "generate", system: SYSTEM, prompt, maxTokens: 400 } satisfies In);
+      const part = texts.length + 1;
+      const label = parts > 1 ? `Part ${part} of ${parts}` : undefined;
+      setPhase({ k: "working", stage: tries > 1 ? "rewriting" : "writing", note: [label, tries > 1 ? `try ${tries}` : ""].filter(Boolean).join(", ") || undefined });
+      w.postMessage({ type: "generate", system: part < parts ? SYSTEM_MIDDLE : SYSTEM, prompt: promptFor(part), maxTokens: 400 } satisfies In);
     };
     w.onmessage = (e: MessageEvent<Out>) => {
       const m = e.data;
@@ -141,30 +204,40 @@ function Body({ d }: { d: Demo }) {
       else if (m.type === "ready") generate();
       else if (m.type === "token") text += m.text;
       else if (m.type === "done") {
-        const raw = (m.text.trim() ? m.text : text).replace(/```[a-z]*\n?/g, "");
+        totalMs += m.ms;
+        totalTokens += m.tokens;
+        const part = texts.length + 1;
+        const raw = (m.text.trim() ? m.text : text).replace(/```[a-z]*\n?/g, "").replace(/[ \t]*\\+[ \t]*$/gm, "");
         const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
-        const title = lines.length > 1 && lines[0].length < 70 ? lines[0].replace(/^[#*[\]"\s]+|[*[\]"\s]+$/g, "") : "Tonight's Chapter";
-        const body = (lines.length > 1 && lines[0].length < 70 ? lines.slice(1) : lines).join("\n");
-        const v = check(d.guard, body, { avoid, alsoScreen: title, minWords: 40 });
+        const hasTitle = part === 1 && lines.length > 1 && lines[0].length < 70;
+        const partTitle = hasTitle ? lines[0].replace(/^[#*[\]"\s]+|[*[\]"\s]+$/g, "") : title;
+        const body = (hasTitle ? lines.slice(1) : lines).join("\n");
+        let v = check(d.guard, body, { avoid, alsoScreen: part === 1 ? partTitle : "", minWords: 40, maxWords: 270 });
+        if (v.ok && texts.length && repeats(body, texts.join("\n"))) v = { ok: false, violations: ["repeats an earlier sentence"] };
         if (!v.ok) {
           if (tries < 3) return generate();
           finished = true;
           return setPhase({ k: "refused" });
         }
+        if (part === 1) title = partTitle;
+        texts.push(body);
+        tries = 0;
+        if (texts.length < parts) return generate();
         finished = true;
+        const full = texts.join("\n\n");
         setPhase({
           k: "ready",
           soften,
           chapter: {
             night: new Date().toISOString().slice(0, 10),
             title,
-            text: body,
-            knobs: { target_words: 120, pace_wpm: 95, calm_level: 5, cast: [], is_sequel: false },
-            attempts: tries,
+            text: full,
+            knobs: { target_words: 120 * parts, pace_wpm: 95, calm_level: 5, cast: [], is_sequel: false, parts },
+            attempts,
             rejected: [],
-            gen_ms: m.ms,
-            eval_tokens: m.tokens,
-            features: { word_count: body.split(/\s+/).length },
+            gen_ms: totalMs,
+            eval_tokens: totalTokens,
+            features: { word_count: full.split(/\s+/).length },
             audio: null,
           },
         });
@@ -217,6 +290,15 @@ function Body({ d }: { d: Demo }) {
               <div style={{ textAlign: "center" }} className="stack">
                 <span className="eyebrow">{mode === "box" ? `Nightjar box · ${health?.model}` : mode === "tab" ? "In this browser" : "Looking for the box"}</span>
                 <h1 className="h-xl">What story tonight, {name}?</h1>
+              </div>
+              <div className="length" role="group" aria-label="How long a story">
+                {(["short", "long"] as const).map((l) => (
+                  <button key={l} className="length-btn" aria-pressed={length === l} onClick={() => setLength(l)}>
+                    <span aria-hidden>{l === "short" ? "🌙" : "🌙🌙🌙"}</span>
+                    <b>{l === "short" ? "Short story" : "Long story"}</b>
+                    <span className="t-xs">{l === "short" ? "about a minute to listen" : "about four minutes, in three parts"}</span>
+                  </button>
+                ))}
               </div>
               <div className="tiles" role="list">
                 {TOPICS.map((t, i) => (
