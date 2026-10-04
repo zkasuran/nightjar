@@ -101,7 +101,11 @@ META = (
     # I'm going to tell you a story", the narrator talking instead of telling.
     "tell you a story",
     "read you a story",
-    "to be here to read",
+    "to be here to",
+    "i hope you",
+    "it's about a",
+    "this story is about",
+    "a story about a",
     # The model echoing its own instructions back, seen in the first long run.
     "everyone gets cosy",
     "part 1 of",

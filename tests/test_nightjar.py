@@ -384,3 +384,14 @@ class TestInstructionEcho(unittest.TestCase):
         body = "Pim walked slowly in the quiet garden. " * 10
         self.assertFalse(guard.check(body + "Everyone gets cosy, safe and falls sleep.").ok)
         self.assertFalse(guard.check(body + "This was part 2 of 3.").ok)
+
+
+class TestNarratorTalk(unittest.TestCase):
+    def test_browser_model_talking_about_the_story_is_refused(self):
+        # Seen live from gemma 3 270M on a "horror" request.
+        text = (
+            "Hello, little one! I'm Mira, and I'm so happy to hear you are asleep tonight. I was thinking about a silly "
+            "story today. It's about a shadow in the dark and a kind friend. I hope you'll enjoy it. "
+            "I'm so happy to be here to help you sleep soundly. "
+        ) * 2
+        self.assertFalse(guard.check(text).ok)

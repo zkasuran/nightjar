@@ -188,6 +188,7 @@ function Body({ d }: { d: Demo }) {
       parts > 1
         ? `This is part 1 of ${parts} of a longer story. Write about 120 words. Very quiet. Short sentences. Do not end the story yet; stop at a calm moment.`
         : "Write about 120 words. Very quiet; almost nothing happens. Short sentences. End with everyone safe and asleep.",
+      "Tell it as a story about the characters, starting with the first thing that happens. Do not talk to the listener or about the story.",
       "Put a short title on the first line, then the story. No other text.",
     ].filter(Boolean).join("\n");
     const promptFor = (part: number) => (part === 1 ? first : continuePrompt(name, d.stories.child.age, ask, texts.join("\n"), part, parts));
