@@ -6,6 +6,7 @@
 
 <p align="center">
   <a href="https://nightjar-bedtime.vercel.app"><b>Live site</b></a> ·
+  <a href="https://dev.to/zkasuran/i-built-my-brother-a-bedtime-storyteller-that-runs-on-his-laptop-1lpf"><b>DEV post</b></a> ·
   <a href="#try-it-in-60-seconds">Try it</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#what-is-real-and-what-is-simulated">Real vs simulated</a> ·
